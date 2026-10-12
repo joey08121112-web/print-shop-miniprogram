@@ -1,0 +1,129 @@
+<!--pages/orders/orders.wxml-->
+<view class="container">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-spinner"></view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:elif="{{orders.length === 0}}" class="empty-state">
+    <view class="empty-icon">
+      <image src="/images/bag.png" class="empty-bag-icon" mode="aspectFit" />
+    </view>
+    <text class="empty-text-secondary">还没有任何订单</text>
+  </view>
+
+  <!-- 订单列表 -->
+  <view wx:else>
+    <view class="orders-header">
+      <text class="orders-title">订单进度</text>
+      <view class="orders-badge">
+        <view class="blink-dot"></view>
+        <text>实时更新中</text>
+      </view>
+    </view>
+
+    <view class="orders-list">
+      <view class="order-card apple-card card-enter" style="animation-delay: {{(index < 6 ? index : 6) * 80}}ms;" wx:for="{{orders}}" wx:key="_id">
+        <!-- 订单头部 -->
+        <view class="order-header">
+          <view class="order-header-left">
+            <view class="order-status-icon" style="background: {{item.isCancelled ? '#f3f4f6' : item.config.color}};">
+              <image wx:if="{{item.status === 'pending'}}" src="/images/clock.png" class="status-icon-img" mode="aspectFit" />
+              <image wx:elif="{{item.status === 'processing'}}" src="/images/package.png" class="status-icon-img" mode="aspectFit" />
+              <image wx:elif="{{item.status === 'ready'}}" src="/images/truck.png" class="status-icon-img" mode="aspectFit" />
+              <image wx:elif="{{item.status === 'delivered'}}" src="/images/check.png" class="status-icon-img" mode="aspectFit" />
+              <image wx:else src="/images/close.png" class="status-icon-img" mode="aspectFit" />
+            </view>
+            <view class="order-status-info">
+              <view class="order-status-label">{{item.config.label}}</view>
+              <view class="order-time">{{item.createdAtStr}}</view>
+            </view>
+          </view>
+          <view class="order-id-section">
+            <view class="order-id-label">ORDER ID</view>
+            <view class="order-id-value">#{{item.orderIdShort}}</view>
+          </view>
+        </view>
+
+        <!-- 进度步骤（圆圈步骤条） -->
+        <view wx:if="{{!item.isCancelled}}" class="stepper">
+          <view class="stepper-item" wx:for="{{statusSteps}}" wx:for-item="step" wx:for-index="i" wx:key="status">
+            <view class="stepper-track">
+              <view class="stepper-seg {{i === 0 ? 'seg-hidden' : ''}} {{i <= item.currentStepIndex ? 'seg-done' : ''}}"></view>
+              <view class="stepper-circle {{i < item.currentStepIndex ? 'circle-done' : (i === item.currentStepIndex ? 'circle-current' : 'circle-todo')}}">
+                <view wx:if="{{i < item.currentStepIndex}}" class="stepper-tick"></view>
+                <text wx:else>{{i + 1}}</text>
+              </view>
+              <view class="stepper-seg {{i === statusSteps.length - 1 ? 'seg-hidden' : ''}} {{i < item.currentStepIndex ? 'seg-done' : ''}}"></view>
+            </view>
+            <view class="stepper-label {{i <= item.currentStepIndex ? 'stepper-label-active' : ''}}">{{step.label}}</view>
+            <view class="stepper-est">{{step.est}}</view>
+          </view>
+        </view>
+
+        <!-- 取件信息 -->
+        <view wx:if="{{item.pickupMode}}" class="order-pickup-info">
+          <image src="{{item.pickupMode === 'delivery' ? '/images/truck.png' : '/images/package.png'}}" class="order-pickup-icon" mode="aspectFit" />
+          <text class="order-pickup-text">{{item.pickupMode === 'delivery' ? '配送' : '自取'}} · {{item.pickupTime || '未选时间'}}</text>
+        </view>
+
+        <!-- 配送地址 -->
+        <view wx:if="{{item.pickupMode === 'delivery' && item.address}}" class="order-pickup-info">
+          <image src="/images/truck.png" class="order-pickup-icon" mode="aspectFit" />
+          <text class="order-pickup-text">送至：{{item.address}} · {{item.phone}}</text>
+        </view>
+
+        <!-- 备注 -->
+        <view wx:if="{{item.remark}}" class="order-remark">
+          <text class="order-remark-label">备注：</text>
+          <text class="order-remark-text">{{item.remark}}</text>
+        </view>
+
+        <!-- 文件列表 -->
+        <view class="files-section">
+          <view class="file-row" wx:for="{{item.files}}" wx:for-item="file" wx:key="id">
+            <view class="file-info">
+              <image src="/images/file.png" class="file-small-icon" mode="aspectFit" />
+              <text class="file-small-name">{{file.name}}</text>
+              <text class="file-meta">{{file.printPagesStr}}P · {{file.copies}}份 · {{file.color ? '彩色' : '黑白'}} · {{file.doubleSided ? '双面' : '单面'}}</text>
+              <text wx:if="{{file.printRange}}" class="file-range">打印范围：{{file.printRange}}</text>
+            </view>
+            <text class="file-price">{{file.pricePending ? '待定' : '¥' + file.priceStr}}</text>
+          </view>
+        </view>
+
+        <!-- 付款二维码 / 待核款提示 -->
+        <view wx:if="{{item.showPayQr}}" class="pay-qr-block">
+          <view class="pay-qr-title">请扫码转账 ¥{{item.totalPriceStr}}</view>
+          <view class="pay-qr-wrap">
+            <image src="{{item.payQrUrl}}" class="pay-qr-img" mode="aspectFit" show-menu-by-longpress="{{true}}" />
+            <view class="qr-shine"></view>
+          </view>
+          <view class="pay-qr-tip">微信扫码转账，完成后老板会确认收款</view>
+          <view class="pay-qr-note">转账请备注 <text class="pay-qr-note-id">#{{item.orderIdShort}}</text>，方便老板对账</view>
+        </view>
+        <view wx:elif="{{!item.isCancelled && item.pricePending}}" class="pay-pending-tip">
+          <view class="pay-pending-title">待老板核价</view>
+          <view class="pay-pending-desc">老板核对打印范围/页数后会通过微信通知你，收到通知后再来本页扫码付款</view>
+        </view>
+
+        <!-- 底部汇总 -->
+        <view class="order-footer">
+          <view class="payment-badge" style="color: {{item.paymentColor}}; background: {{item.paymentColor}}22;">
+            <text>{{item.paymentLabel}}</text>
+          </view>
+          <view class="order-total">
+            <view class="total-label">Total Amount</view>
+            <view class="total-price">{{item.pricePending ? '待核款' : '¥' + item.totalPriceStr}}</view>
+          </view>
+        </view>
+
+        <!-- 取消订单（仅 pending 且未确认收款时显示；已收款的需联系店家，服务端同样拦截） -->
+        <view wx:if="{{item.status === 'pending' && item.paymentStatus !== 'confirmed'}}" class="order-cancel-wrap">
+          <button class="order-cancel-btn" catchtap="cancelOrder" data-id="{{item._id}}">取消订单</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

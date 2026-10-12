@@ -1,0 +1,10 @@
+{
+  "name": "parsePdfPreview",
+  "version": "1.0.0",
+  "description": "轻量 PDF 页数解析云函数（选文件后预览提示）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "pdf-lib": "^1.17.1"
+  }
+}

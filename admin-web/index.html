@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>milo 打印 · 管理后台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    html, body {
+      background: #F5F5F7;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "PingFang SC", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(24px) saturate(1.6);
+      -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    }
+    .btn-action { transition: all 0.18s ease; }
+    .btn-action:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.10); }
+    .btn-action:active { transform: scale(0.97); }
+    .fade-in { animation: fadeIn 0.35s ease both; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-item { animation: toastIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(32px) scale(0.96); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .toast-out { animation: toastOut 0.25s ease both; }
+    @keyframes toastOut {
+      from { opacity: 1; }
+      to { opacity: 0; transform: translateX(24px); }
+    }
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-pop { animation: modalPop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.94) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    /* 营业状态开关 */
+    .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .track {
+      position: absolute; inset: 0; border-radius: 999px;
+      background: rgba(0,0,0,0.12); transition: background 0.2s ease; cursor: pointer;
+    }
+    .switch .track::after {
+      content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+      border-radius: 50%; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.2s ease;
+    }
+    .switch input:checked + .track { background: #34C759; }
+    .switch input:checked + .track::after { transform: translateX(16px); }
+    /* 导航项 */
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 8px 10px; border-radius: 10px; font-size: 13px;
+      color: #6b7280; transition: background 0.15s ease; cursor: pointer;
+    }
+    .nav-item:hover { background: rgba(0,0,0,0.04); }
+    .nav-item.active { background: rgba(0,0,0,0.06); color: #111827; font-weight: 600; }
+    /* 数字输入框去掉箭头 */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    ::selection { background: rgba(0, 122, 255, 0.18); }
+    /* 小屏适配：侧栏折叠为顶部横条，内容占满宽度 */
+    @media (max-width: 900px) {
+      aside {
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 10px;
+        padding: 10px 12px !important;
+      }
+      aside nav { display: contents; }
+      aside nav > * + * { margin-top: 0 !important; }
+      aside .nav-item { width: auto; padding: 6px 10px; font-size: 12px; }
+      .ml-\[250px\] { margin-left: 0 !important; }
+      aside .mt-auto {
+        margin-top: 0 !important; border-top: none !important; padding-top: 0 !important;
+        margin-left: auto; display: flex; align-items: center; gap: 8px;
+      }
+      header { padding: 12px 16px !important; }
+      main { padding: 14px 16px !important; }
+      #searchInput { width: min(100%, 220px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== 配置指引页 ==================== -->
+  <div id="setupPage" class="hidden min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-lg">
+      <div class="glass rounded-2xl border border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.03)] p-8 fade-in">
+        <div class="text-center mb-6">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-black/5 flex items-center justify-center mb-4">
+            <i data-lucide="settings-2" class="w-7 h-7 text-gray-500"></i>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900">需要配置云函数地址</h2>
+          <p class="text-sm text-gray-500 mt-2 leading-relaxed">
+            请先部署 adminApi 云函数并配置 HTTP 触发器，<br>
+            然后在本文件顶部的 <code class="bg-black/5 px-1.5 py-0.5 rounded text-blue-600 text-xs">CONFIG</code> 中填入云函数地址。
+          </p>
+        </div>
+        <div class="bg-white rounded-xl border border-black/5 p-5 text-sm text-gray-600 leading-relaxed">
+          <p class="font-semibold text-gray-800 mb-3">配置步骤：</p>
+          <ol class="list-decimal list-inside space-y-2">
+            <li>在微信开发者工具中，右键 <code class="bg-black/5 px-1 rounded text-xs">cloudfunctions/adminApi</code> → 上传并部署</li>
+            <li>打开云开发控制台 → 云函数 → adminApi → 编辑环境变量，添加 <code class="bg-black/5 px-1 rounded text-xs">ADMIN_SECRET_KEY</code> = 你的暗号</li>
+            <li>在云函数详情页 → 触发器 → 开启 HTTP 触发器，获取访问地址</li>
+            <li>编辑本文件 <code class="bg-black/5 px-1 rounded text-xs">admin-web/index.html</code> 顶部 CONFIG 的 <code class="bg-black/5 px-1 rounded text-xs">cloudFuncUrl</code></li>
+            <li>刷新本页面，用暗号登录</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 登录页 ==================== -->
+  <div id="loginPage" class="hidden min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-sm">
+      <div class="glass rounded-2xl border border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.03)] p-8 fade-in">
+        <div class="text-center mb-7">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-500 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/25">
+            <i data-lucide="printer" class="w-7 h-7 text-white"></i>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900">milo 打印小店</h2>
+          <p class="text-sm text-gray-500 mt-1">管理后台 · 请输入管理员暗号</p>
+        </div>
+        <div class="space-y-3">
+          <input
+            id="loginInput"
+            type="password"
+            placeholder="输入暗号"
+            class="w-full px-4 py-3 rounded-xl bg-white border border-black/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 text-sm transition"
+            onkeydown="if(event.key==='Enter') doLogin()"
+          />
+          <button
+            onclick="doLogin()"
+            class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold btn-action"
+          >
+            登录
+          </button>
+          <p id="loginError" class="text-red-500 text-xs text-center hidden"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 主界面 ==================== -->
+  <div id="mainContent" class="hidden">
+
+    <!-- 左侧毛玻璃侧边栏 -->
+    <aside class="fixed left-0 top-0 h-screen w-[250px] glass backdrop-blur-xl bg-white/70 border-r border-black/5 flex flex-col p-4 z-40">
+      <!-- 品牌区 -->
+      <div class="flex items-center gap-3 px-2 pt-2 pb-5">
+        <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
+          <i data-lucide="printer" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="font-bold text-gray-900 text-[15px] leading-tight">milo 打印小店</div>
+          <div class="text-[11px] text-gray-400">管理后台</div>
+        </div>
+      </div>
+
+      <!-- 营业状态 Toggle -->
+      <div class="flex items-center justify-between px-3 py-2.5 mb-4 rounded-xl bg-black/[0.03]">
+        <span id="shopStatusLabel" class="text-[13px] font-medium text-gray-700">营业中</span>
+        <label class="switch">
+          <input id="shopToggle" type="checkbox" checked onchange="onShopToggle(this.checked)" />
+          <span class="track"></span>
+        </label>
+      </div>
+
+      <!-- 导航菜单 -->
+      <nav class="space-y-1">
+        <button id="nav-pending" class="nav-item" onclick="setStatusFilter('pending')">
+          <i data-lucide="calculator" class="w-4 h-4"></i>
+          <span class="flex-1 text-left">待核价</span>
+          <span id="navCount-pending" class="text-[11px] font-semibold min-w-[20px] text-center px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600">0</span>
+        </button>
+        <button id="nav-processing" class="nav-item" onclick="setStatusFilter('processing')">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span class="flex-1 text-left">打印中</span>
+          <span id="navCount-processing" class="text-[11px] font-semibold min-w-[20px] text-center px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600">0</span>
+        </button>
+        <button id="nav-ready" class="nav-item" onclick="setStatusFilter('ready')">
+          <i data-lucide="package" class="w-4 h-4"></i>
+          <span class="flex-1 text-left">待自取/配送</span>
+          <span id="navCount-ready" class="text-[11px] font-semibold min-w-[20px] text-center px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600">0</span>
+        </button>
+        <button id="nav-delivered" class="nav-item" onclick="setStatusFilter('delivered')">
+          <i data-lucide="circle-check-big" class="w-4 h-4"></i>
+          <span class="flex-1 text-left">已完成</span>
+          <span id="navCount-delivered" class="text-[11px] font-semibold min-w-[20px] text-center px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600">0</span>
+        </button>
+        <button id="nav-cancelled" class="nav-item" onclick="setStatusFilter('cancelled')">
+          <i data-lucide="circle-x" class="w-4 h-4"></i>
+          <span class="flex-1 text-left">已取消</span>
+          <span id="navCount-cancelled" class="text-[11px] font-semibold min-w-[20px] text-center px-1.5 py-0.5 rounded-full bg-black/5 text-gray-500">0</span>
+        </button>
+        <button id="nav-all" class="nav-item" onclick="setStatusFilter('all')">
+          <i data-lucide="history" class="w-4 h-4"></i>
+          <span class="flex-1 text-left">全部历史</span>
+          <span id="navCount-all" class="text-[11px] font-semibold min-w-[20px] text-center px-1.5 py-0.5 rounded-full bg-black/5 text-gray-500">0</span>
+        </button>
+      </nav>
+
+      <!-- 今日营业额 -->
+      <div class="mt-6 mx-1 rounded-xl bg-black/[0.03] p-3.5">
+        <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 mb-1.5">
+          <i data-lucide="wallet" class="w-3.5 h-3.5"></i>今日营业额
+        </div>
+        <div id="todayRevenue" class="text-xl font-bold text-gray-900 tracking-tight">¥0.00</div>
+        <div id="todayCount" class="text-[11px] text-gray-400 mt-0.5">完成 0 单</div>
+        <div id="todayPending" class="text-[11px] text-amber-600 mt-1.5 hidden"></div>
+      </div>
+
+      <!-- 底部：打印助手状态 -->
+      <div class="mt-auto pt-4 border-t border-black/5">
+        <div class="flex items-center gap-2.5 px-2">
+          <span id="helperDot" class="text-[13px] leading-none">⚪</span>
+          <div class="min-w-0">
+            <div id="helperStatusText" class="text-[12px] font-medium text-gray-600">打印助手未连接</div>
+            <div class="text-[10px] text-gray-400 font-mono">127.0.0.1:9527</div>
+          </div>
+        </div>
+        <button onclick="doLogout()" class="nav-item mt-3">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          <span class="flex-1 text-left">退出登录</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 右侧主区域 -->
+    <div class="ml-[250px] min-h-screen flex flex-col">
+
+      <!-- 顶部 Header -->
+      <header class="sticky top-0 z-30 glass backdrop-blur-xl bg-white/70 border-b border-black/5 px-8 py-4">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <h1 id="headerTitle" class="text-[22px] font-bold text-gray-900 tracking-tight">全部订单</h1>
+          <div class="flex items-center gap-2.5">
+            <!-- 搜索框 -->
+            <div class="relative">
+              <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="搜索订单 / 手机号 / 文件名"
+                class="w-64 pl-9 pr-12 py-2 rounded-xl bg-white border border-black/10 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition placeholder:text-gray-400"
+                oninput="onSearchInput(this.value)"
+              />
+              <kbd class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 bg-black/5 rounded px-1.5 py-0.5 font-sans pointer-events-none">⌘K</kbd>
+            </div>
+            <!-- 声音开关 -->
+            <button id="soundToggleBtn" onclick="toggleSound()" title="声音通知开关"
+              class="btn-action w-9 h-9 rounded-xl bg-white border border-black/10 flex items-center justify-center text-gray-600">
+              <i data-lucide="bell" class="w-4 h-4" id="soundIconOn"></i>
+              <i data-lucide="bell-off" class="w-4 h-4 hidden" id="soundIconOff"></i>
+            </button>
+            <!-- 手动刷新 -->
+            <button onclick="loadOrders()" title="刷新订单"
+              class="btn-action w-9 h-9 rounded-xl bg-white border border-black/10 flex items-center justify-center text-gray-600">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+            <!-- 批量一键核价（仅「待核价」视图且有可自动核价订单时显示） -->
+            <button id="batchPriceBtn" onclick="batchPricing()" title="对页数齐全（有范围或已知页数）的待核价订单一键核价并下发付款通知"
+              class="btn-action hidden bg-orange-500 hover:bg-orange-600 text-white px-3.5 h-9 rounded-xl text-[13px] font-semibold">
+              ⚡ 一键核价
+            </button>
+          </div>
+        </div>
+        <!-- 极简 Tab -->
+        <div class="flex items-center gap-1 mt-3">
+          <button class="tab-btn" data-tab="all" onclick="setTabFilter('all')">全部</button>
+          <button class="tab-btn" data-tab="pdf" onclick="setTabFilter('pdf')">PDF</button>
+          <button class="tab-btn" data-tab="word" onclick="setTabFilter('word')">Word</button>
+          <button class="tab-btn" data-tab="delivery" onclick="setTabFilter('delivery')">配送件</button>
+        </div>
+      </header>
+
+      <!-- 主内容区 -->
+      <main class="flex-1 px-8 py-6">
+        <!-- Loading 骨架 -->
+        <div id="loading" class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl border border-black/5 h-52 animate-pulse"></div>
+          <div class="bg-white rounded-2xl border border-black/5 h-52 animate-pulse"></div>
+          <div class="bg-white rounded-2xl border border-black/5 h-52 animate-pulse"></div>
+        </div>
+
+        <!-- 空状态 -->
+        <div id="emptyState" class="hidden text-center py-24">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-white border border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.03)] flex items-center justify-center mb-4">
+            <i data-lucide="inbox" class="w-8 h-8 text-gray-300"></i>
+          </div>
+          <p class="text-gray-500 text-[15px] font-medium">暂无订单</p>
+          <p class="text-gray-400 text-xs mt-1">等待同学下单后，订单会自动出现在这里并响铃提醒</p>
+        </div>
+
+        <!-- 订单卡片网格 -->
+        <div id="orderGrid" class="hidden grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4"></div>
+      </main>
+    </div>
+
+    <!-- ==================== PDF 预览弹窗 ==================== -->
+    <div id="previewModal" class="modal-overlay hidden" onclick="closePreview(event)">
+      <div class="modal-pop bg-white rounded-2xl w-[90vw] h-[85vh] flex flex-col overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-black/5">
+          <div class="min-w-0">
+            <h3 id="previewTitle" class="font-semibold text-gray-900 truncate">文件预览</h3>
+            <p id="previewInfo" class="text-xs text-gray-400 mt-0.5"></p>
+          </div>
+          <div class="flex gap-2 shrink-0 ml-4">
+            <button onclick="printPreview()" class="btn-action bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-medium">打印</button>
+            <button onclick="document.getElementById('previewModal').classList.add('hidden'); document.getElementById('previewFrame').src = '';" class="btn-action bg-black/5 text-gray-600 px-4 py-2 rounded-xl text-sm font-medium">关闭</button>
+          </div>
+        </div>
+        <iframe id="previewFrame" src="" class="flex-1 border-0"></iframe>
+      </div>
+    </div>
+
+    <!-- ==================== 核款计价弹窗 ==================== -->
+    <div id="pricingModal" class="modal-overlay hidden" onclick="closePricingModal(event)">
+      <div class="modal-pop bg-white rounded-2xl w-[680px] max-w-[92vw] max-h-[86vh] flex flex-col overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+        <!-- 弹窗头 -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-black/5 shrink-0">
+          <div>
+            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+              <span class="text-base">🧮</span> 核款计价
+              <span id="pricingOrderTag" class="text-xs font-mono text-gray-400"></span>
+            </h3>
+            <p class="text-xs text-gray-400 mt-0.5">顾客填了范围的按范围计价；打全部的文件请在电脑上打开文件后填入实际页数</p>
+          </div>
+          <button onclick="closePricingModal()" class="btn-action w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-gray-500 shrink-0">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <!-- 文件行 -->
+        <div id="pricingFiles" class="flex-1 overflow-y-auto px-6 py-4 space-y-2.5"></div>
+        <!-- 弹窗底部：费用与合计 -->
+        <div class="border-t border-black/5 px-6 py-4 bg-[#FAFAFC] shrink-0">
+          <div class="flex items-end justify-between gap-6 mb-4">
+            <div class="flex gap-4 flex-wrap">
+              <div>
+                <label class="block text-[11px] font-medium text-gray-500 mb-1">配送费 <span class="text-gray-400 font-normal">（配送且小计&lt;¥10 自动 ¥1）</span></label>
+                <div class="relative">
+                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">¥</span>
+                  <input id="pricingFeeInput" type="number" step="0.01" min="0"
+                    class="w-28 pl-6 pr-2 py-1.5 rounded-lg border border-black/10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    oninput="onPricingFeeInput(this.value)" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-gray-500 mb-1">加收 / 优惠 <span class="text-gray-400 font-normal">（优惠填负数）</span></label>
+                <div class="relative">
+                  <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">¥</span>
+                  <input id="pricingAdjInput" type="number" step="0.01" value="0"
+                    class="w-28 pl-6 pr-2 py-1.5 rounded-lg border border-black/10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    oninput="onPricingAdjInput(this.value)" />
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-[11px] text-gray-400 mb-0.5">合计金额</div>
+              <div id="pricingTotal" class="text-[32px] leading-none font-bold text-gray-900 tracking-tight">¥0.00</div>
+              <div id="pricingHint" class="text-[11px] text-orange-500 mt-1 hidden">有文件未填页数，合计暂不含这些文件</div>
+            </div>
+          </div>
+          <button id="pricingSaveBtn" onclick="savePricing()"
+            class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold btn-action">
+            保存并下发付款通知
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 堆栈（右上角玻璃风格） -->
+    <div id="toastStack" class="fixed top-5 right-5 z-[200] space-y-2 w-80 pointer-events-none"></div>
+
+  </div><!-- /mainContent -->
+
+<script>
+// ==================== 配置 ====================
+const CONFIG = {
+  // 云函数 HTTP 触发器地址（在云开发控制台配置后填入）
+  // 格式: https://你的环境ID.service.tcloudbase.com/adminApi
+  cloudFuncUrl: '',
+
+  // 本地打印助手地址（print-helper/helper.js 常驻打印电脑）
+  helperUrl: 'http://127.0.0.1:9527',
+  // 与 print-helper/helper.js 里的 TOKEN 保持一致
+  helperToken: 'milo-print-helper',
+};
+
+// 暗号从 sessionStorage 读取（登录后存入，关掉浏览器自动清除）
+function getSecretKey() {
+  return sessionStorage.getItem('admin_secret_key') || '';
+}
+
+// ==================== 状态 ====================
+let orders = [];
+let statusFilter = 'pending';    // pending | processing | ready | all
+let tabFilter = 'all';           // all | pdf | word | delivery
+let searchQuery = '';
+let helperOnline = false;        // 本地打印助手是否在线
+let lastTopOrderId = null;       // 最新一条订单 id（用于新订单检测）
+let pollTimer = null;            // 轮询定时器
+let audioCtx = null;
+let soundEnabled = localStorage.getItem('admin_sound_enabled') !== '0';  // 声音通知开关（响铃 + 桌面通知）
+let shopOpen = localStorage.getItem('admin_shop_open') !== '0';          // 营业状态（纯前端）
+let pricingDraft = null;         // 核款计价弹窗草稿
+let pricingSaving = false;
+let currentPreviewUrl = null;    // 预览弹窗当前文件地址（打印时在新标签页打开）
+let batchRunning = false;        // 批量一键核价进行中
+
+// 订单状态流转（与小程序端 updateOrder 云函数一致）
+const NEXT_STEP = { pending: 'processing', processing: 'ready', ready: 'delivered' };
+const STEP_LABEL = { processing: '打印中', ready: '待领取', delivered: '已完成' };
+
+// 状态视觉（macOS 胶囊 Badge）
+const STATUS_META = {
+  pending:    { label: '待核价', badge: 'bg-orange-500/10 text-orange-600', dot: 'bg-orange-500' },
+  processing: { label: '打印中', badge: 'bg-blue-500/10 text-blue-600',     dot: 'bg-blue-500' },
+  ready:      { label: '待领取', badge: 'bg-indigo-500/10 text-indigo-600', dot: 'bg-indigo-500' },
+  delivered:  { label: '已完成', badge: 'bg-green-500/10 text-green-600',   dot: 'bg-green-500' },
+  cancelled:  { label: '已取消', badge: 'bg-gray-500/10 text-gray-500',     dot: 'bg-gray-400' },
+};
+const TITLE_MAP = { pending: '待核价订单', processing: '打印中订单', ready: '待领取订单', delivered: '已完成订单', cancelled: '已取消订单', all: '全部订单' };
+
+// ==================== 工具 ====================
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function jsString(value) {
+  // 生成「单引号」JS 字符串字面量：onclick 属性本身用双引号包裹，
+  // 若此处产出 JSON.stringify 的双引号字符串，属性值会在第一个 " 处被 HTML 截断，
+  // 导致所有带参数的内联按钮静默失效
+  return "'" + String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/&/g, '\\u0026')
+    .replace(/"/g, '\\u0022')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n') + "'";
+}
+
+// 单文件计价（与服务端 calculateFilePrice 完全一致，用于弹窗实时小计）
+function calculateFilePrice(printPages, copies, color, doubleSided) {
+  const copiesN = Math.max(1, parseInt(copies) || 1);
+  let unit;
+  if (doubleSided) {
+    const sheets = Math.floor(printPages / 2);
+    const remaining = printPages % 2;
+    const doubleRate = color ? 0.8 : 0.4;
+    const singleRate = color ? 0.5 : 0.25;
+    unit = (sheets * doubleRate) + (remaining * singleRate);
+  } else {
+    const rate = color ? 0.5 : 0.25;
+    unit = printPages * rate;
+  }
+  return Math.round(unit * copiesN * 100) / 100;
+}
+
+// 解析打印范围 "1-3,5"（逗号兼容中英文），返回 { pages, error }
+function parseRangePages(rangeStr) {
+  const tokens = String(rangeStr || '').split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  if (tokens.length === 0) return { pages: null, error: null };
+  let total = 0;
+  for (const tok of tokens) {
+    if (/^\d+$/.test(tok)) {
+      if (parseInt(tok, 10) < 1) return { pages: null, error: '页码须≥1' };
+      total += 1;
+    } else {
+      const m = tok.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (!m) return { pages: null, error: '范围格式有误' };
+      const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+      if (a < 1 || a > b) return { pages: null, error: '范围无效' };
+      total += (b - a + 1);
+    }
+  }
+  return { pages: total, error: null };
+}
+
+// ==================== API 调用 ====================
+// 所有请求都走这一个函数，由云函数「门卫」代为操作数据库
+async function callAdminApi(action, payload = {}) {
+  const secretKey = getSecretKey();
+  if (!CONFIG.cloudFuncUrl || !secretKey) {
+    throw new Error('请先登录');
+  }
+  const res = await fetch(CONFIG.cloudFuncUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      secretKey: secretKey,
+      action: action,
+      payload: payload
+    })
+  });
+  const result = await res.json();
+  if (result.code !== 0) {
+    throw new Error(result.message || '请求失败');
+  }
+  return result;
+}
+
+// ==================== 加载订单 ====================
+async function loadOrders() {
+  const loadingEl = document.getElementById('loading');
+  const emptyEl = document.getElementById('emptyState');
+  const gridEl = document.getElementById('orderGrid');
+
+  loadingEl.classList.remove('hidden');
+  emptyEl.classList.add('hidden');
+  gridEl.classList.add('hidden');
+
+  try {
+    const res = await callAdminApi('queryOrders', { limit: 100 });
+    orders = res.data || [];
+    lastTopOrderId = orders.length ? orders[0]._id : 'EMPTY';
+    loadingEl.classList.add('hidden');
+    renderAll(true);
+  } catch (err) {
+    loadingEl.classList.add('hidden');
+    showToast('加载失败: ' + err.message, 'error');
+  }
+}
+
+// ==================== 过滤 ====================
+function orderMatchesTab(order) {
+  if (tabFilter === 'all') return true;
+  if (tabFilter === 'delivery') {
+    return order.pickupMode === 'delivery' || (!order.pickupMode && !!order.delivery);
+  }
+  const names = (order.files || []).map(f => String(f.name || '').toLowerCase());
+  if (tabFilter === 'pdf') return names.some(n => n.endsWith('.pdf'));
+  if (tabFilter === 'word') return names.some(n => n.endsWith('.doc') || n.endsWith('.docx'));
+  return true;
+}
+
+function orderMatchesSearch(order) {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return true;
+  const idShort = (order._id || '').slice(-6).toLowerCase();
+  if (idShort.includes(q)) return true;
+  if (String(order.phone || '').toLowerCase().includes(q)) return true;
+  return (order.files || []).some(f => String(f.name || '').toLowerCase().includes(q));
+}
+
+function getFilteredOrders() {
+  let list = orders.filter(o =>
+    (statusFilter === 'all' || o.status === statusFilter) &&
+    orderMatchesTab(o) &&
+    orderMatchesSearch(o)
+  );
+  // 「待核价」视图按下一步动作排序：去核价 > 待收款 > 已收款可开印（sort 稳定，组内保持时间倒序）
+  if (statusFilter === 'pending') {
+    const rank = o => o.pricePending ? 0 : (o.paymentStatus !== 'confirmed' ? 1 : 2);
+    list = [...list].sort((a, b) => rank(a) - rank(b));
+  }
+  return list;
+}
+
+// ==================== 渲染 ====================
+function renderAll(animate = false) {
+  renderSidebar();
+  renderHeader();
+  renderGrid(animate);
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderSidebar() {
+  const counts = { pending: 0, processing: 0, ready: 0, delivered: 0, cancelled: 0 };
+  orders.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
+  document.getElementById('navCount-pending').textContent = counts.pending;
+  document.getElementById('navCount-processing').textContent = counts.processing;
+  document.getElementById('navCount-ready').textContent = counts.ready;
+  document.getElementById('navCount-delivered').textContent = counts.delivered;
+  document.getElementById('navCount-cancelled').textContent = counts.cancelled;
+  document.getElementById('navCount-all').textContent = orders.length;
+
+  ['pending', 'processing', 'ready', 'delivered', 'cancelled', 'all'].forEach(key => {
+    document.getElementById('nav-' + key).classList.toggle('active', statusFilter === key);
+  });
+
+  // 今日营业额：按「完成时间」统计（推进到已完成时写入 deliveredAt，历史订单回退按下单时间）
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  let revenue = 0, done = 0;
+  orders.forEach(o => {
+    if (o.status !== 'delivered') return;
+    const t = new Date(o.deliveredAt || o.createdAt);
+    if (!isNaN(t) && t >= todayStart) {
+      revenue += Number(o.totalPrice) || 0;
+      done++;
+    }
+  });
+  document.getElementById('todayRevenue').textContent = '¥' + revenue.toFixed(2);
+  document.getElementById('todayCount').textContent = '完成 ' + done + ' 单';
+
+  // 待确认收款：已核价、未确认收款且未取消的订单（收了钱记得回来点「确认收款」）
+  let pendingSum = 0, pendingN = 0;
+  orders.forEach(o => {
+    if (o.status === 'cancelled' || o.pricePending || o.paymentStatus === 'confirmed') return;
+    const v = Number(o.totalPrice) || 0;
+    if (v > 0) { pendingSum += v; pendingN++; }
+  });
+  const pendingEl = document.getElementById('todayPending');
+  if (pendingN > 0) {
+    pendingEl.textContent = `待收款 ¥${pendingSum.toFixed(2)} · ${pendingN} 单`;
+    pendingEl.classList.remove('hidden');
+  } else {
+    pendingEl.classList.add('hidden');
+  }
+}
+
+function renderHeader() {
+  const n = getFilteredOrders().length;
+  document.getElementById('headerTitle').textContent = `${TITLE_MAP[statusFilter]} (${n})`;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const active = btn.dataset.tab === tabFilter;
+    btn.className = 'tab-btn px-3.5 py-1.5 rounded-lg text-[13px] transition ' +
+      (active ? 'bg-black/[0.07] text-gray-900 font-semibold' : 'text-gray-500 hover:bg-black/[0.04]');
+  });
+
+  // 批量一键核价按钮：仅「待核价」视图且有可自动核价订单时显示
+  const batchBtn = document.getElementById('batchPriceBtn');
+  if (statusFilter === 'pending') {
+    const batchable = orders.filter(o => o.status === 'pending' && o.pricePending && isBatchPricable(o)).length;
+    batchBtn.classList.toggle('hidden', batchable === 0 || batchRunning);
+    batchBtn.textContent = `⚡ 一键核价 ${batchable} 单`;
+  } else {
+    batchBtn.classList.add('hidden');
+  }
+}
+
+function renderGrid(animate) {
+  const emptyEl = document.getElementById('emptyState');
+  const gridEl = document.getElementById('orderGrid');
+  const list = getFilteredOrders();
+
+  if (list.length === 0) {
+    emptyEl.classList.remove('hidden');
+    gridEl.classList.add('hidden');
+    gridEl.innerHTML = '';
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  gridEl.innerHTML = list.map((order, idx) => renderOrderCard(order, idx, animate)).join('');
+  gridEl.classList.remove('hidden');
+}
+
+// 文件名自动带订单信息：订单号-彩色/黑白-单/双面-页数-原名，一次打多单不混淆
+function buildFileLabel(order, f) {
+  const idShort = order._id ? order._id.slice(-6).toUpperCase() : 'ORDER';
+  const color = f.color ? '彩色' : '黑白';
+  const side = f.doubleSided ? '双面' : '单面';
+  // 有范围的文件 pages 为空、真实页数在 printPages 里，优先取它
+  const pages = Number((f.printPages != null) ? f.printPages : f.pages) || 1;
+  return `${idShort}-${color}-${side}-${pages}页-${f.name}`;
+}
+
+function fileIcon(name) {
+  const n = String(name || '').toLowerCase();
+  if (n.endsWith('.pdf')) return { icon: 'file-text', cls: 'text-red-500' };
+  if (n.endsWith('.doc') || n.endsWith('.docx')) return { icon: 'file-text', cls: 'text-blue-500' };
+  return { icon: 'file', cls: 'text-gray-400' };
+}
+
+function renderOrderCard(order, idx, animate) {
+  const st = STATUS_META[order.status] || STATUS_META.pending;
+  const time = order.createdAt ? new Date(order.createdAt).toLocaleString('zh-CN') : '-';
+  const idShort = escapeHtml(order._id ? order._id.slice(-6).toUpperCase() : '------');
+  const isDelivery = order.pickupMode === 'delivery' || (!order.pickupMode && !!order.delivery);
+  const files = order.files || [];
+
+  // 下单人微信身份（自取订单认人）：avatarUrl 是 adminApi 查询时批量解析的临时链接，老订单可能没有
+  const cust = order.customer || {};
+  const custNick = cust.nickname ? escapeHtml(String(cust.nickname).substring(0, 20)) : '';
+  const custAvatarImg = cust.avatarUrl ? `<img src="${escapeHtml(cust.avatarUrl)}" class="w-4 h-4 rounded-full object-cover shrink-0" alt="">` : '';
+
+  const fileRows = files.map((f, fIdx) => {
+    const name = String(f.name || '未知文件');
+    const fileID = String(f.fileID || '');
+    const displayPages = (f.printPages != null) ? Number(f.printPages) : (f.pages != null ? Number(f.pages) : null);
+    const copies = Number(f.copies) || 1;
+    const color = f.color ? '彩色' : '黑白';
+    const side = f.doubleSided ? '双面' : '单面';
+    const rangeText = f.printRange ? ' · 范围 ' + escapeHtml(f.printRange) : '';
+    const priceText = f.pricePending
+      ? '<span class="text-orange-600 font-medium">待核价</span>'
+      : '¥' + (Number(f.price) || 0).toFixed(2);
+    const pagesText = displayPages != null ? displayPages + ' 页' : '<span class="text-orange-600 font-medium">待核价</span>';
+    const isPdf = name.toLowerCase().endsWith('.pdf');
+    const fi = fileIcon(name);
+    const fileIDArg = jsString(fileID);
+    const nameArg = jsString(name);
+    const labelArg = jsString(buildFileLabel(order, f));
+
+    const previewBtn = isPdf
+      ? `<button onclick="previewPDF(${fileIDArg}, ${nameArg}, ${displayPages}, ${jsString(f.printRange || '')})" class="btn-action bg-black/5 text-gray-600 px-2.5 py-1 rounded-lg text-[11px] font-medium">预览</button>`
+      : '';
+
+    return `
+      <div class="flex items-center gap-2.5 py-2 ${fIdx > 0 ? 'border-t border-black/5' : ''}">
+        <i data-lucide="${fi.icon}" class="w-4 h-4 ${fi.cls} shrink-0"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-[13px] text-gray-800 font-medium truncate">${escapeHtml(name)}</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">${color} · ${side} · ${copies}份${rangeText} · ${pagesText} · ${priceText}</div>
+        </div>
+        <div class="flex gap-1.5 shrink-0">
+          ${previewBtn}
+          <button onclick="smartOpen(${fileIDArg}, ${labelArg})" class="btn-action bg-blue-500 text-white px-2.5 py-1 rounded-lg text-[11px] font-medium">一键打开</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 订单操作按钮（与小程序端管理页同一套动作）
+  const next = NEXT_STEP[order.status];
+  let actionBtns = '';
+  // 核款计价弹窗（核心入口）
+  if (order.status !== 'delivered' && order.status !== 'cancelled') {
+    actionBtns += `<button onclick="openPricingModal(${jsString(order._id)})" class="btn-action ${order.pricePending ? 'bg-blue-500 text-white shadow-sm shadow-blue-500/25' : 'bg-black/5 text-gray-700'} px-3 py-1.5 rounded-lg text-xs font-medium">🧮 ${order.pricePending ? '核款计价' : '重算价格'}</button>`;
+  }
+  // 确认收款：只在价格已核定时出现（未核价的单子收了钱也对不上账）
+  if (!order.pricePending && order.paymentStatus !== 'confirmed' && order.status !== 'cancelled') {
+    actionBtns += `<button onclick="orderAction(${jsString(order._id)}, 'confirmPayment')" class="btn-action bg-amber-500/90 text-white px-3 py-1.5 rounded-lg text-xs font-medium">确认收款</button>`;
+  }
+  if (next) {
+    actionBtns += `<button onclick="orderAction(${jsString(order._id)}, 'advanceStatus', '${next}')" class="btn-action bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium">推进到「${STEP_LABEL[next]}」</button>`;
+  }
+  if (order.status !== 'delivered' && order.status !== 'cancelled') {
+    actionBtns += `<button onclick="orderAction(${jsString(order._id)}, 'cancelOrder')" class="btn-action bg-black/5 text-red-500 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>`;
+  }
+
+  // 「下一步」徽标：一眼看出这张单子该干什么
+  let todoChip = '';
+  if (order.status === 'pending') {
+    if (order.pricePending) {
+      todoChip = '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600">去核价</span>';
+    } else if (order.paymentStatus !== 'confirmed') {
+      todoChip = '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600">待收款</span>';
+    } else {
+      todoChip = '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600">可开印</span>';
+    }
+  } else if (order.status === 'ready') {
+    todoChip = '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-600">待交付</span>';
+  }
+
+  // 配送订单的地址信息（高亮显示，打印/送货前必看）
+  const addressRow = (isDelivery && (order.address || order.phone))
+    ? `<div class="mb-3 bg-indigo-500/[0.08] text-indigo-700 text-xs px-3 py-2 rounded-xl flex items-start gap-1.5">
+         <i data-lucide="map-pin" class="w-3.5 h-3.5 mt-px shrink-0"></i>
+         <span><span class="font-semibold">配送：</span>${escapeHtml(order.address || '')}${order.phone ? ' · ' + escapeHtml(order.phone) : ''}</span>
+       </div>`
+    : '';
+
+  // 待收款对账提示：头像昵称 + 应收金额 + 学生转账备注号，和微信收款流水对号入座
+  const collectRow = (!order.pricePending && order.paymentStatus !== 'confirmed' && order.status !== 'cancelled' && order.status !== 'delivered')
+    ? `<div class="mb-3 bg-amber-500/[0.08] text-amber-700 text-xs px-3 py-2 rounded-xl flex items-start gap-1.5">
+         ${custAvatarImg || '<i data-lucide="wallet" class="w-3.5 h-3.5 mt-px shrink-0"></i>'}
+         <span class="flex items-center gap-1 flex-wrap">${custNick ? `<span class="font-semibold">${custNick}</span> · ` : ''}待收款 <span class="font-bold">¥${(Number(order.totalPrice) || 0).toFixed(2)}</span> · 学生转账备注号 <span class="font-mono font-bold">#${idShort}</span></span>
+       </div>`
+    : '';
+
+  const pickupTag = isDelivery
+    ? '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600">配送</span>'
+    : '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-black/5 text-gray-500">自取</span>';
+
+  // 下单人标签：有头像显示头像+昵称，只有昵称显示文字，老订单显示未留
+  const customerTag = custNick
+    ? `<span class="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-black/[0.04] px-2 py-0.5 rounded-full max-w-[150px]" title="下单人">${custAvatarImg}<span class="truncate">${custNick}</span></span>`
+    : '<span class="text-[11px] text-gray-400 bg-black/[0.04] px-2 py-0.5 rounded-full">👤 未留昵称</span>';
+
+  return `
+    <div class="bg-white rounded-2xl border border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.03)] p-5 flex flex-col${animate ? ' fade-in' : ''}"${animate ? ` style="animation-delay: ${Math.min(idx * 0.04, 0.4)}s"` : ''}>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-1.5">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${st.badge}">
+            <span class="w-1.5 h-1.5 rounded-full ${st.dot}"></span>${st.label}
+          </span>
+          ${todoChip}
+        </div>
+        <span class="text-[11px] text-gray-400">${escapeHtml(time)}</span>
+      </div>
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="font-mono font-bold text-gray-900 text-[15px]">#${idShort}</span>
+          ${pickupTag}
+          ${customerTag}
+          ${order.pickupTime ? `<span class="text-[11px] text-gray-400">${escapeHtml(order.pickupTime)}</span>` : ''}
+        </div>
+        <div class="text-lg font-bold text-gray-900 tracking-tight">${order.pricePending ? '<span class="text-orange-500 text-sm font-semibold">待核价</span>' : '¥' + (Number(order.totalPrice) || 0).toFixed(2)}</div>
+      </div>
+      <div class="mb-3">${fileRows}</div>
+      ${addressRow}
+      ${collectRow}
+      ${order.remark ? `<div class="mb-3 bg-amber-500/10 text-amber-700 text-xs px-3 py-2 rounded-xl"><span class="font-semibold">备注：</span>${escapeHtml(order.remark)}</div>` : ''}
+      <div class="flex items-center justify-between pt-3 mt-auto border-t border-black/5">
+        <div class="text-[11px] text-gray-400">
+          ${order.pricePending ? '待核价' : (order.paymentStatus === 'confirmed' ? '✓ 已付款' : '待付款')}
+        </div>
+        <div class="flex gap-1.5 flex-wrap justify-end">${actionBtns}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ==================== 订单操作 ====================
+async function orderAction(orderId, op, nextStatus) {
+  const order = orders.find(o => o._id === orderId);
+  // 未确认收款不允许开始打印（服务端同样拦截，这里提前给出友好提示）
+  if (op === 'advanceStatus' && nextStatus === 'processing' && order && order.paymentStatus !== 'confirmed') {
+    showToast('该订单尚未确认收款，请先点「确认收款」', 'warning');
+    return;
+  }
+  const confirmText = {
+    confirmPayment: '确认已收到该订单的转账？建议按金额 + 转账备注号 #结尾6位 与微信收款流水核对',
+    advanceStatus: `将订单推进到「${STEP_LABEL[nextStatus]}」？`,
+    cancelOrder: '确定要取消此订单吗？此操作不可撤销。'
+  }[op];
+  if (!confirm(confirmText)) return;
+
+  try {
+    await callAdminApi('updateOrder', { orderId, op, nextStatus });
+    showToast('操作成功', 'success');
+    loadOrders();
+  } catch (err) {
+    showToast('操作失败: ' + err.message, 'error');
+  }
+}
+
+// ==================== 核款计价弹窗 ====================
+function openPricingModal(orderId) {
+  const order = orders.find(o => o._id === orderId);
+  if (!order) return;
+  // 回填订单已存的优惠/配送费：二次核价时不静默丢掉老板之前填过的值
+  const prevAdj = Number(order.adjustment) || 0;
+  const prevFee = (order.deliveryFee != null && Number.isFinite(Number(order.deliveryFee))) ? Number(order.deliveryFee) : null;
+  pricingDraft = {
+    orderId,
+    pagesByIdx: (order.files || []).map(f => (f.pages != null ? String(f.pages) : '')),
+    // 每个文件的彩黑/单双面（老板可在核价时纠正学生选错的情况）
+    opts: (order.files || []).map(f => ({ color: !!f.color, doubleSided: !!f.doubleSided })),
+    fee: prevFee != null ? prevFee : 0,
+    feeTouched: prevFee != null,   // 之前设过配送费 → 保持，不再被自动值覆盖
+    adjustment: prevAdj
+  };
+  pricingSaving = false;
+  document.getElementById('pricingOrderTag').textContent = '#' + (orderId.slice(-6).toUpperCase());
+  document.getElementById('pricingAdjInput').value = String(prevAdj);
+  document.getElementById('pricingSaveBtn').textContent = '保存并下发付款通知';
+  renderPricingFiles();
+  document.getElementById('pricingModal').classList.remove('hidden');
+  recalcPricing();
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderPricingFiles() {
+  const order = orders.find(o => o._id === pricingDraft.orderId);
+  if (!order) return;
+  const container = document.getElementById('pricingFiles');
+  container.innerHTML = (order.files || []).map((f, idx) => {
+    const name = String(f.name || '未知文件');
+    const copies = Number(f.copies) || 1;
+    const rangeStr = String(f.printRange || '');
+    const rangeInfo = parseRangePages(rangeStr);
+    const hasRange = !rangeInfo.error && rangeInfo.pages !== null;
+    const fi = fileIcon(name);
+    const opt = (pricingDraft.opts && pricingDraft.opts[idx]) || { color: !!f.color, doubleSided: !!f.doubleSided };
+
+    // 彩黑/单双面纠正开关：学生常选错，老板点一下即切换并实时重算
+    const chip = (active, label, key) => `<button type="button" onclick="togglePricingOpt(${idx}, '${key}')" class="px-2 py-0.5 rounded-md text-[10px] font-semibold border transition ${active ? 'bg-blue-500/10 text-blue-600 border-blue-500/20' : 'bg-black/[0.04] text-gray-400 border-transparent'}">${label}</button>`;
+    const toggles = `
+          <div class="flex items-center gap-1 mt-1">
+            ${chip(opt.color, opt.color ? '彩色' : '黑白', 'color')}
+            <span class="text-gray-300 text-[10px]">·</span>
+            ${chip(opt.doubleSided, opt.doubleSided ? '双面' : '单面', 'doubleSided')}
+            <span class="text-[10px] text-gray-300">点击纠正</span>
+          </div>`;
+
+    let rightControl;
+    if (hasRange) {
+      // 顾客填了范围 → 前端按范围算页数，页数输入框禁用
+      rightControl = `<span class="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 whitespace-nowrap">按范围 ${rangeInfo.pages} 页</span>`;
+    } else {
+      // 没填范围（打全部）→ 老板在电脑打开文件看实际页数后填入
+      const errNote = rangeInfo.error ? `<div class="text-[10px] text-red-500 mt-0.5 text-right">范围格式有误，请手动填页数</div>` : '';
+      rightControl = `
+        <div class="shrink-0">
+          <div class="relative">
+            <input id="pricingPages${idx}" type="number" min="1" step="1" value="${escapeHtml(pricingDraft.pagesByIdx[idx])}"
+              placeholder="页数"
+              class="w-24 px-2.5 py-1.5 rounded-lg border border-black/10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-right"
+              oninput="onPricingPagesInput(${idx}, this.value)" />
+            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-300 pointer-events-none"></span>
+          </div>
+          ${errNote}
+        </div>`;
+    }
+
+    return `
+      <div class="flex items-center gap-3 bg-[#FAFAFC] border border-black/5 rounded-xl px-4 py-3">
+        <i data-lucide="${fi.icon}" class="w-5 h-5 ${fi.cls} shrink-0"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-[13px] font-medium text-gray-800 truncate">${escapeHtml(name)}</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">${copies} 份${rangeStr ? ' · 范围 ' + escapeHtml(rangeStr) : ' · 打印全部'}</div>
+          ${toggles}
+        </div>
+        ${rightControl}
+        <div class="w-20 text-right shrink-0">
+          <div id="pricingSub${idx}" class="text-sm font-bold text-gray-900">¥0.00</div>
+          <div class="text-[10px] text-gray-400">小计</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 核价弹窗内切换彩黑/单双面：更新草稿并重渲染 + 实时重算
+function togglePricingOpt(idx, key) {
+  if (!pricingDraft || !pricingDraft.opts[idx]) return;
+  pricingDraft.opts[idx][key] = !pricingDraft.opts[idx][key];
+  renderPricingFiles();
+  recalcPricing();
+  if (window.lucide) lucide.createIcons();
+}
+
+// 实时重算：每个文件小计 + 配送费自动值 + 大号合计
+function recalcPricing() {
+  if (!pricingDraft) return;
+  const order = orders.find(o => o._id === pricingDraft.orderId);
+  if (!order) return;
+  let subtotal = 0, missing = false;
+
+  (order.files || []).forEach((f, idx) => {
+    const rangeInfo = parseRangePages(f.printRange || '');
+    const hasRange = !rangeInfo.error && rangeInfo.pages !== null;
+    let pages = null;
+    if (hasRange) {
+      pages = rangeInfo.pages;
+    } else {
+      const v = parseInt(pricingDraft.pagesByIdx[idx], 10);
+      if (v > 0) pages = v;
+    }
+    const el = document.getElementById('pricingSub' + idx);
+    if (!el) return;
+    if (pages) {
+      const opt = (pricingDraft.opts && pricingDraft.opts[idx]) || {};
+      const sub = calculateFilePrice(pages, f.copies, !!opt.color, !!opt.doubleSided);
+      subtotal += sub;
+      el.textContent = '¥' + sub.toFixed(2);
+      el.classList.remove('text-gray-300');
+    } else {
+      missing = true;
+      el.textContent = '待填页数';
+      el.classList.add('text-gray-300');
+    }
+  });
+
+  // 配送费默认自动：配送且小计<10 → ¥1，否则 ¥0（老板手动改过后不再覆盖）
+  if (!pricingDraft.feeTouched) {
+    pricingDraft.fee = (order.pickupMode === 'delivery') ? (subtotal < 10 ? 1 : 0) : 0;
+    const feeInput = document.getElementById('pricingFeeInput');
+    if (feeInput) feeInput.value = pricingDraft.fee;
+  }
+  const fee = Math.max(0, Number(pricingDraft.fee) || 0);
+  const adj = Number(pricingDraft.adjustment) || 0;
+  const total = Math.round((subtotal + fee + adj) * 100) / 100;
+  document.getElementById('pricingTotal').textContent = '¥' + total.toFixed(2);
+  document.getElementById('pricingHint').classList.toggle('hidden', !missing);
+}
+
+function onPricingPagesInput(idx, value) {
+  if (!pricingDraft) return;
+  pricingDraft.pagesByIdx[idx] = value;
+  recalcPricing();
+}
+
+function onPricingFeeInput(value) {
+  if (!pricingDraft) return;
+  pricingDraft.feeTouched = true;   // 手动改过 → 保存时传给服务端覆盖自动逻辑
+  pricingDraft.fee = value;
+  recalcPricing();
+}
+
+function onPricingAdjInput(value) {
+  if (!pricingDraft) return;
+  pricingDraft.adjustment = value;
+  recalcPricing();
+}
+
+function closePricingModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('pricingModal').classList.add('hidden');
+  pricingDraft = null;
+}
+
+// 保存并下发付款通知：调 adminApi recalcPrice
+async function savePricing() {
+  if (!pricingDraft || pricingSaving) return;
+  const order = orders.find(o => o._id === pricingDraft.orderId);
+  if (!order) return;
+  pricingSaving = true;
+  const btn = document.getElementById('pricingSaveBtn');
+  btn.textContent = '保存中...';
+
+  const files = (order.files || []).map((f, idx) => {
+    const rangeInfo = parseRangePages(f.printRange || '');
+    const hasRange = !rangeInfo.error && rangeInfo.pages !== null;
+    let pages;
+    if (hasRange) {
+      pages = rangeInfo.pages;   // 按范围算出的页数（服务端会以范围为准重算）
+    } else {
+      const v = parseInt(pricingDraft.pagesByIdx[idx], 10);
+      pages = (v > 0) ? v : '';  // 留空则服务端标记该文件 pricePending
+    }
+    const opt = pricingDraft.opts[idx] || {};
+    return { id: f.id, pages, printRange: f.printRange || '', color: !!opt.color, doubleSided: !!opt.doubleSided };
+  });
+
+  const payload = {
+    orderId: pricingDraft.orderId,
+    op: 'recalcPrice',
+    files,
+    adjustment: Number(pricingDraft.adjustment) || 0
+  };
+  // deliveryFee 仅在老板手动改过时传，否则不传让服务端自动算
+  if (pricingDraft.feeTouched) {
+    payload.deliveryFee = Number(pricingDraft.fee) || 0;
+  }
+
+  try {
+    const res = await callAdminApi('updateOrder', payload);
+    closePricingModal();
+    if (res.pricePending) {
+      // 有文件没填页数：warning 提示，不误报成功
+      showToast(res.message || '仍有文件待核价', 'warning');
+    } else {
+      showToast(res.message || '价格已更新', 'success');
+    }
+    loadOrders();
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
+  } finally {
+    pricingSaving = false;
+    btn.textContent = '保存并下发付款通知';
+  }
+}
+
+// ==================== 批量一键核价 ====================
+// 判断一张待核价订单能否不开文件直接核价：
+// 每个文件要么有合法打印范围（页数可算），要么页数已知（如 PDF 已自动识别）
+function isBatchPricable(order) {
+  return (order.files || []).every(f => {
+    const r = parseRangePages(f.printRange || '');
+    if (!r.error && r.pages !== null) return true;
+    const p = Number((f.printPages != null) ? f.printPages : f.pages);
+    return p > 0;
+  });
+}
+
+function buildBatchFiles(order) {
+  return (order.files || []).map(f => {
+    const r = parseRangePages(f.printRange || '');
+    if (!r.error && r.pages !== null) {
+      return { id: f.id, pages: r.pages, printRange: f.printRange || '' };
+    }
+    const p = Number((f.printPages != null) ? f.printPages : f.pages);
+    return { id: f.id, pages: p > 0 ? p : '', printRange: '' };
+  });
+}
+
+async function batchPricing() {
+  if (batchRunning) return;
+  const targets = orders.filter(o => o.status === 'pending' && o.pricePending && isBatchPricable(o));
+  if (targets.length === 0) return;
+  if (!confirm(`将对 ${targets.length} 张页数齐全的待核价订单一键核价并下发付款通知？`)) return;
+
+  batchRunning = true;
+  renderHeader();
+  let ok = 0, fail = 0;
+  for (const order of targets) {
+    try {
+      await callAdminApi('updateOrder', {
+        orderId: order._id,
+        op: 'recalcPrice',
+        files: buildBatchFiles(order)
+      });
+      ok++;
+    } catch (err) {
+      fail++;
+      console.warn('批量核价失败:', order._id, err.message);
+    }
+  }
+  batchRunning = false;
+  const manual = orders.filter(o => o.status === 'pending' && o.pricePending && !isBatchPricable(o)).length;
+  let msg = `一键核价完成：成功 ${ok} 单`;
+  if (fail) msg += `，失败 ${fail} 单`;
+  if (manual) msg += `；还有 ${manual} 单需手动填页数核价`;
+  showToast(msg, fail ? 'warning' : 'success');
+  loadOrders();
+}
+
+// ==================== 文件操作 ====================
+// 一键打开：优先调本地打印助手（文件自动弹进 WPS），助手不在线则回退为下载
+async function smartOpen(fileID, label) {
+  if (!helperOnline) {
+    showToast('打印助手未连接，改为下载文件', 'info');
+    await downloadAndOpen(fileID, label);
+    return;
+  }
+  showToast('正在发送到本机打开...', 'info');
+  try {
+    const res = await callAdminApi('getFileUrl', { fileID: fileID });
+    const url = `${CONFIG.helperUrl}/open?token=${encodeURIComponent(CONFIG.helperToken)}&url=${encodeURIComponent(res.url)}&name=${encodeURIComponent(label)}`;
+    const r = await fetch(url);
+    const j = await r.json();
+    if (j.code !== 0) throw new Error(j.message || '助手打开失败');
+    showToast('已发送，文件稍候自动打开', 'success');
+  } catch (err) {
+    showToast('助手打开失败，改为下载: ' + err.message, 'error');
+    await downloadAndOpen(fileID, label);
+  }
+}
+
+async function downloadAndOpen(fileID, fileName) {
+  showToast('正在获取下载链接...', 'info');
+  try {
+    const res = await callAdminApi('getFileUrl', { fileID: fileID });
+    const a = document.createElement('a');
+    a.href = res.url;
+    a.download = fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('文件已开始下载，请在下载目录中打开', 'success');
+  } catch (err) {
+    showToast('下载失败: ' + err.message, 'error');
+  }
+}
+
+async function previewPDF(fileID, fileName, pages, range) {
+  showToast('正在加载文件...', 'info');
+  try {
+    const res = await callAdminApi('getFileUrl', { fileID: fileID });
+    document.getElementById('previewTitle').textContent = fileName;
+    document.getElementById('previewInfo').textContent = `${pages != null ? pages + ' 页' : '页数待定'}${range ? ' · 范围 ' + range : ''} · 点「打印」在新标签页打开后打印`;
+    currentPreviewUrl = res.url;
+    document.getElementById('previewFrame').src = res.url;
+    document.getElementById('previewModal').classList.remove('hidden');
+  } catch (err) {
+    showToast('加载失败: ' + err.message, 'error');
+  }
+}
+
+function printPreview() {
+  // 云存储链接与后台跨域，iframe 里调 print() 会被浏览器拦截，改为新标签页打开由用户直接打印
+  if (!currentPreviewUrl) return;
+  const w = window.open(currentPreviewUrl, '_blank');
+  if (!w) showToast('弹窗被浏览器拦截，请允许弹窗后重试', 'warning');
+}
+
+function closePreview(event) {
+  if (event.target === event.currentTarget) {
+    document.getElementById('previewModal').classList.add('hidden');
+    document.getElementById('previewFrame').src = '';
+  }
+}
+
+// ==================== 本地打印助手 ====================
+async function checkHelper() {
+  try {
+    const res = await fetch(`${CONFIG.helperUrl}/ping?token=${encodeURIComponent(CONFIG.helperToken)}`);
+    const j = await res.json();
+    helperOnline = j.code === 0;
+  } catch (e) {
+    helperOnline = false;
+  }
+  const dot = document.getElementById('helperDot');
+  const text = document.getElementById('helperStatusText');
+  if (!dot || !text) return;
+  if (helperOnline) {
+    dot.textContent = '🟢';
+    text.textContent = '打印助手已连接';
+    text.className = 'text-[12px] font-medium text-green-600';
+  } else {
+    dot.textContent = '⚪';
+    text.textContent = '打印助手未连接';
+    text.className = 'text-[12px] font-medium text-gray-500';
+  }
+}
+
+// ==================== 新订单提醒 ====================
+function playBeep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25].forEach(delay => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime + delay);
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + 0.15);
+    });
+  } catch (e) {}
+}
+
+async function pollNewOrders() {
+  try {
+    const res = await callAdminApi('queryOrders', { limit: 100 });
+    const list = res.data || [];
+    const topId = list.length ? list[0]._id : 'EMPTY';
+    const hasNew = lastTopOrderId !== null && topId !== lastTopOrderId;
+    lastTopOrderId = topId;
+
+    // 每次轮询都同步最新数据：别端（小程序管理页/学生取消）的状态变化也会自动刷新
+    orders = list;
+    // 核款弹窗打开时只更新数据不重渲染，避免正在填的页数草稿被清掉
+    const pricingOpen = !document.getElementById('pricingModal').classList.contains('hidden');
+    if (!pricingOpen) renderAll(false);
+
+    if (hasNew) {
+      // 有新订单：玻璃 Toast + 响铃 + 桌面通知（后两者尊重声音开关）
+      const newest = list[0];
+      const shortId = newest && newest._id ? newest._id.slice(-6).toUpperCase() : '------';
+      showToast(`🔔 收到新订单 #${shortId}，请及时核价`, 'new-order');
+
+      if (soundEnabled) {
+        playBeep();
+        if (window.Notification && Notification.permission === 'granted') {
+          new Notification('milo 打印 · 新订单', { body: `收到新订单 #${shortId}，请及时核价` });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('轮询失败:', e);
+  }
+
+  // 顺带检测一下打印助手状态
+  checkHelper();
+}
+
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(pollNewOrders, 30000);
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  lastTopOrderId = null;
+}
+
+// ==================== Toast（macOS 玻璃风格堆栈） ====================
+function showToast(msg, type = 'info') {
+  if (!msg) return;
+  const stack = document.getElementById('toastStack');
+  const styles = {
+    'info':      'text-gray-700',
+    'success':   'text-green-700',
+    'error':     'text-red-600',
+    'warning':   'text-orange-600',
+    'new-order': 'text-gray-900 font-semibold',
+  };
+  const icons = {
+    'info':      'info',
+    'success':   'circle-check-big',
+    'error':     'circle-alert',
+    'warning':   'triangle-alert',
+    'new-order': 'bell-ring',
+  };
+  const iconColors = {
+    'info': 'text-blue-500', 'success': 'text-green-500', 'error': 'text-red-500',
+    'warning': 'text-orange-500', 'new-order': 'text-blue-500',
+  };
+  const el = document.createElement('div');
+  el.className = `toast-item pointer-events-auto glass backdrop-blur-xl bg-white/70 border border-black/5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] px-4 py-3 flex items-center gap-2.5 text-[13px] ${styles[type] || styles.info}`;
+  el.innerHTML = `<i data-lucide="${icons[type] || icons.info}" class="w-4 h-4 shrink-0 ${iconColors[type] || iconColors.info}"></i><span class="flex-1">${escapeHtml(msg)}</span>`;
+  stack.appendChild(el);
+  if (window.lucide) lucide.createIcons();
+  setTimeout(() => {
+    el.classList.add('toast-out');
+    setTimeout(() => el.remove(), 260);
+  }, 3000);
+}
+
+// ==================== 筛选 / 搜索 / 开关 ====================
+function setStatusFilter(key) {
+  statusFilter = key;
+  renderAll();
+}
+
+function setTabFilter(key) {
+  tabFilter = key;
+  renderAll();
+}
+
+function onSearchInput(value) {
+  searchQuery = value;
+  renderHeader();
+  renderGrid();
+  if (window.lucide) lucide.createIcons();
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('admin_sound_enabled', soundEnabled ? '1' : '0');
+  renderSoundToggle();
+  showToast(soundEnabled ? '声音通知已开启' : '声音通知已静音', 'info');
+}
+
+function renderSoundToggle() {
+  const on = document.getElementById('soundIconOn');
+  const off = document.getElementById('soundIconOff');
+  if (!on || !off) return;
+  on.classList.toggle('hidden', !soundEnabled);
+  off.classList.toggle('hidden', soundEnabled);
+  document.getElementById('soundToggleBtn').classList.toggle('text-gray-300', !soundEnabled);
+}
+
+function renderShopToggle() {
+  const label = document.getElementById('shopStatusLabel');
+  document.getElementById('shopToggle').checked = shopOpen;
+  label.textContent = shopOpen ? '营业中' : '休息中';
+  label.className = 'text-[13px] font-medium ' + (shopOpen ? 'text-green-600' : 'text-gray-400');
+}
+
+// 营业状态写入云端：休息中时小程序端会禁止下单（getShopStatus 云函数读取）
+async function onShopToggle(open) {
+  shopOpen = open;
+  localStorage.setItem('admin_shop_open', open ? '1' : '0');
+  renderShopToggle();
+  try {
+    await callAdminApi('setShopStatus', { open });
+    showToast(open ? '已开始营业，小程序恢复接单' : '已切换休息，小程序将禁止下单', 'success');
+  } catch (err) {
+    // 同步失败：回滚开关，避免界面和真实状态不一致
+    shopOpen = !open;
+    localStorage.setItem('admin_shop_open', shopOpen ? '1' : '0');
+    renderShopToggle();
+    showToast('营业状态同步失败: ' + err.message, 'error');
+  }
+}
+
+// 登录后从云端读取真实营业状态（本地缓存仅作初始显示）
+async function fetchShopStatus() {
+  try {
+    const res = await callAdminApi('getShopStatus');
+    shopOpen = res.open !== false;
+    localStorage.setItem('admin_shop_open', shopOpen ? '1' : '0');
+    renderShopToggle();
+  } catch (e) {
+    console.warn('读取营业状态失败:', e);
+  }
+}
+
+// ==================== 登录 ====================
+async function doLogin() {
+  const input = document.getElementById('loginInput');
+  const errorEl = document.getElementById('loginError');
+  const key = input.value.trim();
+
+  if (!key) {
+    errorEl.textContent = '请输入暗号';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  // 先存入，再验证（调一次云函数看暗号对不对）
+  sessionStorage.setItem('admin_secret_key', key);
+  errorEl.classList.add('hidden');
+
+  try {
+    await callAdminApi('queryOrders', { limit: 1 });
+    // 验证通过，进入主页
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+
+    // 申请桌面通知权限（用于新订单提醒）
+    if (window.Notification && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    loadOrders();
+    checkHelper();
+    startPolling();
+    fetchShopStatus();
+  } catch (err) {
+    // 验证失败，清除暗号
+    sessionStorage.removeItem('admin_secret_key');
+    errorEl.textContent = err.message === '暗号错误，无权访问' ? '暗号错误' : '连接失败: ' + err.message;
+    errorEl.classList.remove('hidden');
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('admin_secret_key');
+  stopPolling();
+  document.getElementById('mainContent').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+  document.getElementById('loginInput').value = '';
+}
+
+// ==================== 快捷键 ====================
+document.addEventListener('keydown', (e) => {
+  // CMD+K / Ctrl+K 聚焦搜索框
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    const el = document.getElementById('searchInput');
+    if (el && !document.getElementById('mainContent').classList.contains('hidden')) {
+      el.focus();
+      el.select();
+    }
+  }
+  // Esc 关闭弹窗
+  if (e.key === 'Escape') {
+    closePricingModal();
+    document.getElementById('previewModal').classList.add('hidden');
+    document.getElementById('previewFrame').src = '';
+  }
+});
+
+// ==================== 启动 ====================
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.lucide) lucide.createIcons();
+
+  // 恢复开关状态（仅本地初始显示；登录后会从云端同步真实状态）
+  renderShopToggle();
+  renderSoundToggle();
+
+  if (!CONFIG.cloudFuncUrl) {
+    document.getElementById('setupPage').classList.remove('hidden');
+    return;
+  }
+
+  // 检查是否已登录
+  if (getSecretKey()) {
+    document.getElementById('mainContent').classList.remove('hidden');
+    loadOrders();
+    checkHelper();
+    startPolling();
+    fetchShopStatus();
+  } else {
+    document.getElementById('loginPage').classList.remove('hidden');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+/* pages/orders/orders.wxss */
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 160rpx 0;
+}
+
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #FF6700;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160rpx 0;
+  gap: 24rpx;
+}
+
+.empty-bag-icon {
+  width: 64rpx;
+  height: 64rpx;
+  opacity: 0.3;
+}
+
+.empty-text-secondary {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #86868b;
+}
+
+/* 订单头部 */
+.orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.orders-title {
+  font-size: 40rpx;
+  font-weight: 900;
+}
+
+.orders-badge {
+  font-size: 20rpx;
+  font-weight: bold;
+  color: #86868b;
+  background: #ffffff;
+  padding: 8rpx 24rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+/* 动效11：实时更新闪点 */
+.blink-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #22C55E;
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(0.7); }
+}
+
+/* 订单列表 */
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  padding-bottom: 40rpx;
+}
+
+.order-card {
+  overflow: hidden;
+}
+
+/* 订单头部 */
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32rpx;
+}
+
+.order-header-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.order-status-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.1);
+}
+
+.status-icon-img {
+  width: 44rpx;
+  height: 44rpx;
+  filter: brightness(0) invert(1);
+}
+
+.order-status-label {
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.order-time {
+  font-size: 20rpx;
+  color: #86868b;
+  font-weight: 900;
+  opacity: 0.6;
+  margin-top: 4rpx;
+}
+
+.order-id-section {
+  text-align: right;
+}
+
+.order-id-label {
+  font-size: 18rpx;
+  font-weight: 900;
+  color: #d1d5db;
+  text-transform: uppercase;
+  letter-spacing: 4rpx;
+}
+
+.order-id-value {
+  font-size: 26rpx;
+  font-weight: 900;
+  margin-top: 4rpx;
+}
+
+/* 进度步骤（圆圈步骤条） */
+.stepper {
+  display: flex;
+  margin-bottom: 32rpx;
+}
+
+.stepper-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stepper-track {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.stepper-seg {
+  flex: 1;
+  height: 4rpx;
+  border-radius: 2rpx;
+  background: #ececf0;
+  /* 动效10：进度线段填充过渡 */
+  transition: background-color 0.4s;
+}
+
+.stepper-seg.seg-done {
+  background: #FF6700;
+}
+
+.stepper-seg.seg-hidden {
+  visibility: hidden;
+}
+
+.stepper-circle {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 900;
+  margin: 0 10rpx;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.stepper-circle.circle-todo {
+  background: #ffffff;
+  border: 3rpx solid #e5e7eb;
+  color: #c8c9cf;
+}
+
+.stepper-circle.circle-done {
+  background: #FF6700;
+  color: #ffffff;
+}
+
+.stepper-circle.circle-current {
+  background: #FF6700;
+  color: #ffffff;
+  box-shadow: 0 0 0 8rpx rgba(255,103,0,0.14);
+}
+
+/* 动效10：当前步骤呼吸光环（伪元素放大淡出循环） */
+.stepper-circle.circle-current::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 8rpx rgba(255,103,0,0.16);
+  animation: breath 1.8s ease-in-out infinite;
+}
+
+@keyframes breath {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.3; }
+}
+
+/* 圆圈内的小对勾（纯 CSS，无需图片）；动效10：完成瞬间 pop 出现 */
+.stepper-tick {
+  width: 16rpx;
+  height: 9rpx;
+  border-left: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
+  transform: rotate(-45deg);
+  margin-top: -4rpx;
+  animation: tickIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tickIn {
+  from { transform: rotate(-45deg) scale(0); }
+  to { transform: rotate(-45deg) scale(1); }
+}
+
+.stepper-label {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #b6b7bd;
+  margin-top: 14rpx;
+}
+
+.stepper-label.stepper-label-active {
+  color: #1D1D1F;
+}
+
+.stepper-est {
+  font-size: 18rpx;
+  font-weight: bold;
+  color: #d1d5db;
+  margin-top: 2rpx;
+}
+
+/* 取件信息 */
+.order-pickup-info {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  background: rgba(255,103,0,0.06);
+  padding: 12rpx 20rpx;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.order-pickup-icon {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.order-pickup-text {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #FF6700;
+}
+
+/* 备注 */
+.order-remark {
+  background: rgba(245,158,11,0.06);
+  padding: 12rpx 20rpx;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+}
+
+.order-remark-label {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+.order-remark-text {
+  font-size: 22rpx;
+  color: #b45309;
+  line-height: 1.4;
+}
+
+/* 文件列表 */
+.files-section {
+  background: rgba(245,247,250,0.5);
+  padding: 24rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(255,255,255,0.5);
+  margin-bottom: 24rpx;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
+  flex: 1;
+}
+
+.file-small-icon {
+  width: 24rpx;
+  height: 28rpx;
+  flex-shrink: 0;
+}
+
+.file-small-name {
+  font-size: 22rpx;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200rpx;
+}
+
+.file-meta {
+  font-size: 18rpx;
+  font-weight: 900;
+  color: #86868b;
+  white-space: nowrap;
+}
+
+.file-range {
+  width: 100%;
+  font-size: 18rpx;
+  color: #FF6700;
+  margin-top: 2rpx;
+}
+
+.file-price {
+  font-size: 22rpx;
+  font-weight: 900;
+  color: #86868b;
+  flex-shrink: 0;
+}
+
+/* 订单底部 */
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8rpx;
+}
+
+.payment-badge {
+  font-size: 18rpx;
+  font-weight: 900;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.order-total {
+  text-align: right;
+}
+
+.total-label {
+  font-size: 18rpx;
+  font-weight: 900;
+  color: #d1d5db;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 4rpx;
+}
+
+.total-price {
+  font-size: 36rpx;
+  font-weight: 900;
+}
+
+/* 取消订单按钮（仅 pending 状态显示） */
+.order-cancel-wrap {
+  margin-top: 16rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.order-cancel-btn {
+  background: transparent;
+  border: 1rpx solid #fca5a5;
+  color: #ef4444;
+  font-size: 26rpx;
+  padding: 8rpx 28rpx;
+  border-radius: 999rpx;
+  line-height: 1.6;
+}
+
+.order-cancel-btn::after {
+  border: none;
+}
+
+/* 付款二维码 / 待核款提示 */
+.pay-qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  background: rgba(255,103,0,0.05);
+  border: 1rpx solid rgba(255,103,0,0.15);
+  border-radius: 24rpx;
+  padding: 32rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.pay-qr-title {
+  font-size: 28rpx;
+  font-weight: 900;
+  color: #1D1D1F;
+}
+
+.pay-qr-img {
+  width: 320rpx;
+  height: 320rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+}
+
+/* 动效8：收款码扫光的容器（裁剪高光条） */
+.pay-qr-wrap {
+  position: relative;
+  display: inline-flex;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.pay-qr-tip {
+  font-size: 20rpx;
+  font-weight: bold;
+  color: #86868b;
+}
+
+/* 转账备注号提示（对账用） */
+.pay-qr-note {
+  font-size: 20rpx;
+  font-weight: bold;
+  color: #b45309;
+  background: rgba(245,158,11,0.08);
+  border-radius: 999rpx;
+  padding: 6rpx 20rpx;
+}
+
+.pay-qr-note-id {
+  font-family: Menlo, Consolas, monospace;
+}
+
+.pay-pending-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  background: rgba(245,158,11,0.08);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  line-height: 1.5;
+}
+
+.pay-pending-title {
+  font-size: 26rpx;
+  font-weight: 900;
+  color: #b45309;
+}
+
+.pay-pending-desc {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #d97706;
+}

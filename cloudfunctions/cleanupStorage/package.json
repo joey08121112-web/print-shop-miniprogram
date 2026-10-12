@@ -1,0 +1,9 @@
+{
+  "name": "cleanupStorage",
+  "version": "1.0.0",
+  "description": "定时清理 print-files/pending 孤儿文件（依据 pendingFiles 台账）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -1,0 +1,16 @@
+<view class="tab-bar glass-morphism">
+  <view
+    wx:for="{{list}}"
+    wx:key="pagePath"
+    class="tab-item {{selected === index ? 'active' : ''}}"
+    data-path="{{item.pagePath}}"
+    bindtap="switchTab"
+  >
+    <image
+      class="tab-icon"
+      src="/images/{{selected === index ? item.iconActive : item.icon}}.png"
+      mode="aspectFit"
+    />
+    <text class="tab-text">{{item.text}}</text>
+  </view>
+</view>

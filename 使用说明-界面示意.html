@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>milo 打印小店 · 界面示意图</title>
+<style>
+  body { margin:0; background:#f3f4f6; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; color:#1f2937; }
+  h1 { text-align:center; font-size:20px; padding:24px 0 4px; }
+  .sub { text-align:center; color:#6b7280; font-size:13px; margin-bottom:24px; }
+  .grid { display:flex; flex-wrap:wrap; gap:24px; justify-content:center; padding:0 16px 48px; }
+  .panel { background:#fff; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,.08); overflow:hidden; }
+  .phone { width:300px; }
+  .web { width:560px; }
+  .bar { background:#FF6700; color:#fff; padding:14px 16px; font-weight:600; font-size:15px; display:flex; justify-content:space-between; align-items:center; }
+  .bar small { font-weight:400; opacity:.9; font-size:11px; }
+  .body { padding:16px; }
+  .tip { background:#fff7ed; color:#c2410c; font-size:12px; padding:8px 10px; border-radius:8px; margin-bottom:12px; line-height:1.5; }
+  .filecard { border:1px solid #e5e7eb; border-radius:12px; padding:12px; margin-bottom:10px; }
+  .fname { font-weight:600; font-size:13px; margin-bottom:8px; }
+  .stepper { display:flex; align-items:center; gap:10px; }
+  .sbtn { width:28px; height:28px; border-radius:8px; background:#f3f4f6; border:none; font-size:16px; }
+  .sinput { width:44px; text-align:center; border:1px solid #d1d5db; border-radius:8px; height:28px; }
+  .meta { font-size:11px; color:#6b7280; margin-top:8px; }
+  .pill { display:inline-block; background:#f3f4f6; color:#4b5563; font-size:11px; padding:2px 8px; border-radius:10px; margin-right:6px; }
+  .badge { display:inline-block; font-size:11px; padding:3px 10px; border-radius:12px; font-weight:600; }
+  .b-wait { background:#fef3c7; color:#b45309; }
+  .b-ready { background:#fee2e2; color:#FF6700; }
+  .amount { font-size:22px; font-weight:700; color:#FF6700; }
+  .btn { display:block; width:100%; box-sizing:border-box; text-align:center; padding:12px; border-radius:12px; font-weight:600; font-size:14px; border:none; margin-top:8px; }
+  .btn-confirm { background:#22c55e; color:#fff; }
+  .btn-advance { background:#3b82f6; color:#fff; }
+  .btn-calc { background:#FF6700; color:#fff; }
+  .qr { width:160px; height:160px; background:
+    repeating-conic-gradient(#111 0% 25%, #fff 0% 50%) 0/20px 20px; margin:12px auto; border-radius:8px; }
+  .weborder { border:1px solid #e5e7eb; border-radius:12px; padding:14px; margin-bottom:12px; }
+  .webtop { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .webrow { display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0; border-top:1px solid #f3f4f6; }
+  .inputmini { border:1px solid #d1d5db; border-radius:6px; width:56px; height:26px; text-align:center; font-size:12px; }
+  .foot { text-align:center; color:#9ca3af; font-size:12px; padding:0 0 32px; }
+</style>
+</head>
+<body>
+<h1>milo 打印小店 · 界面示意图</h1>
+<div class="sub">以下为各端关键界面占位示意（非真实截图，用于理解布局与操作位置）</div>
+
+<div class="grid">
+
+  <!-- 顾客端 · 首页 -->
+  <div class="panel phone">
+    <div class="bar">📄 上传打印 <small>首页</small></div>
+    <div class="body">
+      <div class="tip">您只需选择份数与打印范围，页数由系统/老板核对。</div>
+      <div class="filecard">
+        <div class="fname">论文.pdf</div>
+        <div class="stepper">
+          <button class="sbtn">−</button>
+          <input class="sinput" value="2" />
+          <button class="sbtn">+</button>
+          <span style="font-size:13px;color:#6b7280;">份</span>
+        </div>
+        <div class="meta">打印范围（留空=全部）：<span class="pill">1-3,5</span></div>
+        <div class="meta">实际打印 5 页 · 黑白单面</div>
+      </div>
+      <div class="filecard">
+        <div class="fname">笔记.docx</div>
+        <div class="stepper">
+          <button class="sbtn">−</button>
+          <input class="sinput" value="1" />
+          <button class="sbtn">+</button>
+          <span style="font-size:13px;color:#6b7280;">份</span>
+        </div>
+        <div class="meta">打印范围：<span class="pill">留空=全部</span></div>
+        <div class="meta">页数待老板核款</div>
+      </div>
+      <button class="btn btn-confirm">提交订单</button>
+    </div>
+  </div>
+
+  <!-- 顾客端 · 订单 -->
+  <div class="panel phone">
+    <div class="bar">📦 我的订单 <small>订单进度</small></div>
+    <div class="body">
+      <div class="weborder">
+        <div class="webtop">
+          <span class="badge b-ready">待领取</span>
+          <span style="font-size:12px;color:#9ca3af;">#A1B2C3</span>
+        </div>
+        <div class="meta">论文.pdf · 5P · 2份 · 黑白单面</div>
+        <div class="meta">笔记.docx · 3P · 1份 · 彩色双面</div>
+        <div style="margin-top:8px;"><span class="amount">¥6.50</span></div>
+        <div class="qr"></div>
+        <div style="text-align:center;font-size:12px;color:#6b7280;">请扫码转账，完成后老板确认收款</div>
+      </div>
+      <div class="weborder">
+        <div class="webtop">
+          <span class="badge b-wait">待核款</span>
+        </div>
+        <div class="meta">笔记.docx · 1份</div>
+        <div style="margin-top:8px;color:#b45309;font-size:13px;"><b>待老板核价</b> · 核价成功后会通知你付款</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理端 · 小程序 -->
+  <div class="panel phone">
+    <div class="bar">🛠 任务控制中心 <small>管理</small></div>
+    <div class="body">
+      <div class="weborder">
+        <div class="webtop">
+          <span class="badge b-wait">待核款</span>
+          <span class="amount" style="font-size:16px;">金额: 待核款</span>
+        </div>
+        <div class="meta">用户 openid… · 14:32</div>
+        <div class="webrow">
+          <span>📄 笔记.docx</span>
+          <span class="pill">份数：1</span>
+          <span class="pill">范围：</span>
+        </div>
+        <div class="webrow">
+          打印范围<input class="inputmini" placeholder="留空=全部" />
+          <span style="color:#9ca3af;font-size:12px;">（有范围即按范围计价，不用填总页数）</span>
+        </div>
+        <div class="webrow">
+          总页数<input class="inputmini" placeholder="打全部时填" />
+          <span style="color:#9ca3af;font-size:12px;">（仅范围留空时填）</span>
+        </div>
+        <button class="btn btn-calc">核款计价</button>
+        <button class="btn btn-confirm">确认收钱</button>
+        <button class="btn btn-advance">推进: 打印中</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 网页后台 -->
+  <div class="panel web">
+    <div class="bar">💻 milo 打印 - 管理后台 <small>网页端（浏览器打开）</small></div>
+    <div class="body">
+      <div class="tip">网页端访问：部署 <b>adminApi</b> 云函数并开启 HTTP 触发器 → 在 index.html 顶部 CONFIG 填入触发器地址 → 浏览器打开该 HTML，用暗号登录。</div>
+      <div class="weborder">
+        <div class="webtop">
+          <span><span class="badge b-wait">待核款</span> <b>#A1B2C3</b> · 自取 · 14:32</span>
+          <span class="amount" style="font-size:16px;">金额: 待核款</span>
+        </div>
+        <div class="webrow">
+          <span>📄 笔记.docx</span>
+          <span class="pill">3 页 · 1份 · ¥1.50</span>
+          <button style="margin-left:auto;background:#FF6700;color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:12px;">查看打印内容</button>
+        </div>
+        <div class="webrow">
+          打印范围<input class="inputmini" placeholder="留空=全部" /> 总页数<input class="inputmini" placeholder="打全部时填" />
+          <button class="btn-calc" style="margin-left:auto;background:#FF6700;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;">核款计价</button>
+        </div>
+      </div>
+      <div class="weborder">
+        <div class="webtop">
+          <span><span class="badge b-ready">待领取</span> <b>#D4E5F6</b></div>
+          <span class="amount" style="font-size:16px;">¥6.50</span>
+        </div>
+        <div class="webrow"><span>📄 论文.pdf</span><span class="pill">5 页 · 2份 · ¥2.50</span></div>
+        <button class="btn btn-confirm">确认收钱</button>
+        <button class="btn btn-advance">推进: 已完成</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="foot">示意图仅展示布局与操作位置，具体样式以真机/模拟器为准。</div>
+</body>
+</html>

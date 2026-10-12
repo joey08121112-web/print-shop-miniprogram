@@ -1,0 +1,295 @@
+<!--pages/home/home.wxml-->
+<view class="container">
+  <!-- 1. Header -->
+  <view class="header">
+    <view class="header-title">milo 的打印小店</view>
+    <view class="header-subtitle">MILO PRINT SHOP</view>
+  </view>
+
+  <!-- 顶部提示：份数/范围说明 -->
+  <view class="warning-tip">
+    <image src="/images/warning.png" class="tip-warning-icon" mode="aspectFit" />
+    <text>选择份数与打印范围后下单，老板核对范围/页数并核价后，您会收到通知再来付款。</text>
+  </view>
+
+  <!-- 店主休息提示（老板在网页后台切换「休息中」时出现） -->
+  <view wx:if="{{shopClosed}}" class="closed-tip">
+    <text>😴 店主休息中，暂停接单，请稍后再来</text>
+  </view>
+
+  <!-- 顾客身份卡：自取订单老板靠头像昵称认人 -->
+  <view class="profile-bar" bindtap="openProfileModal">
+    <image class="profile-avatar" src="{{profile.avatarFileID || '/images/user.png'}}" mode="aspectFill" />
+    <view class="profile-info">
+      <view class="profile-name">{{profile.nickname || '设置头像和昵称'}}</view>
+      <view class="profile-desc">{{profile.nickname ? '点击可修改 · 自取时老板靠昵称认人' : '首次使用建议设置，自取时老板靠昵称认人'}}</view>
+    </view>
+  </view>
+
+  <!-- 2. 空状态或文件列表 -->
+  <block wx:if="{{files.length === 0}}">
+    <view class="empty-card card-enter">
+      <view class="empty-icon-wrapper">
+        <image src="/images/upload.png" class="empty-icon-img" mode="aspectFit" />
+      </view>
+      <view class="empty-text">
+        <view class="empty-title">准备好打印了吗？</view>
+        <view class="empty-desc">支持 PDF、Word、及图片文件</view>
+        <view class="empty-desc">下单后老板核价确认，核价成功后会通知您付款</view>
+      </view>
+      <button class="xiaomi-btn upload-btn" bindtap="chooseFile" disabled="{{isParsing}}">
+        <text wx:if="{{isParsing}}">正在解析...</text>
+        <text wx:else>立即上传文件</text>
+      </button>
+    </view>
+
+    <!-- 计价说明（空状态常驻显示，紧跟上传按钮下方） -->
+    <view class="price-tips card-enter" style="animation-delay: 120ms;">
+      <view class="tips-card">
+        <view class="tips-header">
+          <image src="/images/info.png" class="info-icon" mode="aspectFit" />
+          <text>计价细则</text>
+        </view>
+        <view class="tips-content">
+          <text>黑白: 单面 ¥0.25 | 双面 ¥0.40/张</text>
+          <text>彩色: 单面 ¥0.50 | 双面 ¥0.80/张</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <!-- 文件列表 -->
+    <view class="file-list">
+      <view class="file-item apple-card card-enter" style="animation-delay: {{(index < 6 ? index : 6) * 70}}ms;" wx:for="{{files}}" wx:key="id">
+        <view class="file-row">
+          <!-- 文件图标 / 缩略图（仅此区域可触发预览） -->
+          <view class="file-icon-wrapper" bindtap="previewFile" data-id="{{item.id}}">
+            <image wx:if="{{item.isImage}}" src="{{item.path}}" class="file-thumb" mode="aspectFill" />
+            <block wx:else>
+              <image src="/images/file.png" class="file-icon-img" mode="aspectFit" />
+              <view wx:if="{{item.typeBadge}}" class="file-type-badge badge-{{item.badgeClass}}">{{item.typeBadge}}</view>
+            </block>
+            <view wx:if="{{item.isEstimated}}" class="file-warning-dot">
+              <image src="/images/warning.png" class="warning-icon" mode="aspectFit" />
+            </view>
+          </view>
+
+          <!-- 文件详情 -->
+          <view class="file-details">
+            <view class="file-name">{{item.name}}</view>
+
+            <!-- 份数控制 -->
+            <view class="pages-control">
+              <view class="page-btn" data-id="{{item.id}}" data-action="minus" catchtap="updateFileCopies">-</view>
+              <input class="page-input" type="number" value="{{item.copies}}" data-id="{{item.id}}" bindinput="inputFileCopies" bindblur="blurFileCopies" />
+              <view class="page-btn" data-id="{{item.id}}" data-action="plus" catchtap="updateFileCopies">+</view>
+              <text class="pages-label">份</text>
+            </view>
+
+            <!-- 打印范围 -->
+            <view class="range-control">
+              <text class="range-label">打印范围</text>
+              <input class="range-input" placeholder="留空=全部，如 1-3,5" value="{{item.printRange}}" data-id="{{item.id}}" bindinput="inputPrintRange" maxlength="30" />
+              <text wx:if="{{item.rangeError}}" class="range-error">{{item.rangeError}}</text>
+              <text wx:elif="{{item.printRange && item.printRange.trim()}}" class="range-hint">实际打印 {{item.printPages}} 页</text>
+            </view>
+
+            <!-- 选项按钮 -->
+            <view class="file-options">
+              <view class="option-toggle {{item.color ? 'active' : ''}}" data-id="{{item.id}}" catchtap="toggleColor">
+                <view class="option-icon">C</view>
+                <text>彩色</text>
+                <view class="option-dot {{item.color ? 'dot-active' : ''}}"></view>
+              </view>
+              <view class="option-toggle {{item.doubleSided ? 'active' : ''}}" data-id="{{item.id}}" catchtap="toggleDoubleSided">
+                <view class="option-icon">D</view>
+                <text>双面</text>
+                <view class="option-dot {{item.doubleSided ? 'dot-active' : ''}}"></view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 价格和删除 -->
+          <view class="file-right">
+            <view class="remove-btn" data-id="{{item.id}}" catchtap="removeFile">
+              <image src="/images/close.png" class="close-icon" mode="aspectFit" />
+            </view>
+            <view class="price price-anim-{{item.bumpAnim}}">{{item.pricePending ? '待核款' : '¥' + item.price}}</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 继续添加 -->
+      <view class="add-more-btn" bindtap="chooseFile">
+        <image src="/images/plus.png" class="plus-icon" mode="aspectFit" />
+        <text>继续添加文件</text>
+      </view>
+    </view>
+
+    <!-- 3. 取件方式 -->
+    <view class="delivery-section">
+      <view class="pickup-cards">
+        <!-- 配送 -->
+        <view class="pickup-card apple-card {{pickupMode === 'delivery' ? 'pickup-active' : ''}}" bindtap="selectPickupMode" data-mode="delivery">
+          <view class="pickup-icon-wrapper {{pickupMode === 'delivery' ? 'pickup-icon-active' : ''}}">
+            <image src="/images/truck.png" class="pickup-icon" mode="aspectFit" />
+          </view>
+          <view class="pickup-label">配送</view>
+          <view class="pickup-desc">满 ¥10 免运费</view>
+          <view class="pickup-check {{pickupMode === 'delivery' ? 'check-active' : ''}}">
+            <view wx:if="{{pickupMode === 'delivery'}}" class="check-dot"></view>
+          </view>
+        </view>
+        <!-- 自取 -->
+        <view class="pickup-card apple-card {{pickupMode === 'pickup' ? 'pickup-active' : ''}}" bindtap="selectPickupMode" data-mode="pickup">
+          <view class="pickup-icon-wrapper {{pickupMode === 'pickup' ? 'pickup-icon-active' : ''}}">
+            <image src="/images/package.png" class="pickup-icon" mode="aspectFit" />
+          </view>
+          <view class="pickup-label">自取</view>
+          <view class="pickup-desc">免费，到店取件</view>
+          <view class="pickup-check {{pickupMode === 'pickup' ? 'check-active' : ''}}">
+            <view wx:if="{{pickupMode === 'pickup'}}" class="check-dot"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 配送信息（选了配送后出现，必填） -->
+      <view wx:if="{{pickupMode === 'delivery'}}" class="address-section">
+        <view class="address-header">
+          <image src="/images/truck.png" class="address-icon" mode="aspectFit" />
+          <text>配送信息</text>
+          <text class="address-required">必填</text>
+        </view>
+        <input class="address-input" placeholder="楼栋 / 宿舍号，如：3栋 502" value="{{address}}" bindinput="inputAddress" maxlength="50" />
+        <input class="address-input" type="number" placeholder="手机号，送到时方便联系你" value="{{phone}}" bindinput="inputPhone" maxlength="11" />
+      </view>
+
+      <!-- 时间选择（选了配送或自取后出现） -->
+      <view wx:if="{{pickupMode}}" class="time-section">
+        <view class="time-header">
+          <image src="/images/clock.png" class="time-header-icon" mode="aspectFit" />
+          <text>{{pickupMode === 'delivery' ? '选择配送时间' : '选择自取时间'}}</text>
+        </view>
+        <scroll-view scroll-x class="time-scroll">
+          <view class="time-list">
+            <view
+              wx:for="{{timeSlots}}"
+              wx:key="value"
+              class="time-slot {{item.disabled ? 'time-disabled' : ''}} {{selectedTime === item.value ? 'time-selected' : ''}}"
+              data-value="{{item.value}}"
+              data-disabled="{{item.disabled}}"
+              bindtap="selectTime"
+            >
+              {{item.label}}
+            </view>
+          </view>
+        </scroll-view>
+        <view class="time-tip">可不选时间；可预约今天至大后天每天 8:00-21:00 的整点</view>
+      </view>
+
+      <!-- 计价说明 -->
+      <view class="price-tips">
+        <view class="tips-card">
+          <view class="tips-header">
+            <image src="/images/info.png" class="info-icon" mode="aspectFit" />
+            <text>计价细则</text>
+          </view>
+          <view class="tips-content">
+            <text>黑白: 单面 ¥0.25 | 双面 ¥0.40/张</text>
+            <text>彩色: 单面 ¥0.50 | 双面 ¥0.80/张</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 备注 -->
+      <view class="remark-section">
+        <view class="remark-header">
+          <image src="/images/info.png" class="remark-icon" mode="aspectFit" />
+          <text class="remark-title">备注</text>
+          <text class="remark-optional">选填</text>
+        </view>
+        <textarea
+          class="remark-input"
+          placeholder="如有特殊要求请备注，如：用A3纸、彩色封面等"
+          placeholder-class="remark-placeholder"
+          value="{{remark}}"
+          bindinput="inputRemark"
+          maxlength="200"
+          auto-height
+        />
+        <view class="remark-count">{{remark.length}}/200</view>
+      </view>
+    </view>
+
+    <!-- 4. 底部结算栏 -->
+    <view class="checkout-bar glass-morphism">
+      <view class="checkout-left">
+        <view class="checkout-label">
+          <text>应付合计</text>
+          <view wx:if="{{pickupMode === 'delivery' && subtotal >= 10}}" class="free-badge">运费免除</view>
+          <view wx:if="{{pickupMode}}" class="pickup-tag">{{pickupMode === 'delivery' ? '配送' : '自取'}}{{selectedTime ? ' · ' + selectedTime : ''}}</view>
+        </view>
+        <view class="checkout-price price-anim-{{totalBump}}">{{pricePending ? '待核款' : '¥' + totalPrice}}</view>
+      </view>
+      <button class="xiaomi-btn checkout-btn" bindtap="handleOrder" disabled="{{isSubmitting}}">
+        <text wx:if="{{isSubmitting}}">处理中</text>
+        <text wx:else>确认下单</text>
+      </button>
+    </view>
+
+    <!-- 底部留白，避免被 tab bar 遮挡 -->
+    <view class="bottom-spacer"></view>
+  </block>
+
+  <!-- 6. 头像昵称设置弹窗（微信头像昵称填写能力） -->
+  <view wx:if="{{showProfileModal}}" class="modal-overlay" bindtap="closeProfileModal">
+    <view class="modal-content profile-modal" catchtap="preventBubble">
+      <view class="modal-title">设置头像和昵称</view>
+      <view class="modal-desc">自取订单时老板靠昵称认人</view>
+      <button class="avatar-choose-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="avatar-preview" src="{{tempAvatarPath || profile.avatarFileID || '/images/user.png'}}" mode="aspectFill" />
+        <view class="avatar-choose-tip">点击选择头像</view>
+      </button>
+      <input class="nickname-input" type="nickname" placeholder="填昵称（键盘会建议微信昵称）" placeholder-class="nickname-placeholder" value="{{nicknameInput}}" bindinput="onNicknameInput" bindblur="onNicknameInput" maxlength="20" />
+      <button class="xiaomi-btn modal-btn" bindtap="saveProfile" disabled="{{savingProfile}}">
+        <text wx:if="{{savingProfile}}">保存中...</text>
+        <text wx:else>保存</text>
+      </button>
+      <view class="modal-cancel" bindtap="closeProfileModal">取消</view>
+    </view>
+  </view>
+
+  <!-- 5. 支付弹窗 -->
+  <view wx:if="{{showPaymentModal}}" class="modal-overlay" bindtap="closePaymentModal">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-icon-success">
+        <image src="/images/success.png" class="success-icon" mode="aspectFit" />
+      </view>
+      <view class="modal-title">订单已就绪</view>
+
+      <block wx:if="{{pricePending}}">
+        <view class="modal-desc">订单已提交！金额待老板打开文件核款后确认。</view>
+        <view class="modal-desc">确认后请在「我的订单」查看最终金额，再扫码转账。</view>
+      </block>
+      <block wx:else>
+        <view class="modal-desc">请扫码转账 ¥{{paidAmount}}</view>
+        <view class="modal-adjusted">转账请备注 #{{payNoteId}}（方便老板对账）</view>
+        <view wx:if="{{priceAdjusted}}" class="modal-adjusted">已按文件实际页数核价</view>
+        <view class="modal-desc">完成后点击按钮，剩下的交给我们。</view>
+
+        <view class="qr-section">
+          <view class="qr-placeholder">
+            <image src="/images/qrcode{{payQrIndex}}.png" class="qr-image" mode="aspectFit" />
+            <view class="qr-shine"></view>
+          </view>
+          <view class="qr-tip">请使用微信扫描转账</view>
+        </view>
+      </block>
+
+      <button class="xiaomi-btn modal-btn" bindtap="goToOrders">查看进度</button>
+      <view class="modal-cancel" bindtap="closePaymentModal">以后再说</view>
+    </view>
+  </view>
+
+</view>

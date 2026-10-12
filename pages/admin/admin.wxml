@@ -1,0 +1,124 @@
+<!--pages/admin/admin.wxml-->
+<view class="container">
+  <!-- 非管理员提示 -->
+  <view wx:if="{{!isAdmin && !loading}}" class="no-access">
+    <image src="/images/warning.png" class="no-access-icon" mode="aspectFit" />
+    <text class="no-access-text">仅管理员可见</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:elif="{{loading}}" class="loading-state">
+    <view class="loading-spinner"></view>
+  </view>
+
+  <!-- 管理面板 -->
+  <view wx:else>
+    <view class="admin-header">
+      <view>
+        <view class="admin-title">任务控制中心</view>
+        <view class="admin-subtitle">云打印管控台 (实时)</view>
+      </view>
+    </view>
+
+    <view class="orders-list">
+      <view class="admin-order-card apple-card card-enter" style="animation-delay: {{(idx < 6 ? idx : 6) * 70}}ms;" wx:for="{{orders}}" wx:key="_id" wx:for-index="idx">
+        <!-- 订单头部 -->
+        <view class="order-top">
+          <view class="order-top-left">
+            <view class="status-badge" style="color: {{item.label.color}}; background: {{item.label.bgColor}};">
+              {{item.label.label}}
+            </view>
+            <text class="order-id-text">#{{item.orderIdShort}}</text>
+          </view>
+          <view class="order-amount">
+            金额: {{item.pricePending ? '待核款' : '¥' + item.totalPriceStr}}
+          </view>
+        </view>
+
+        <!-- 用户信息（下单人头像昵称，自取订单认人用；老订单回退显示 openid） -->
+        <view class="user-info">
+          <image class="user-avatar" src="{{item.customer.avatarFileID || '/images/user.png'}}" mode="aspectFill" />
+          <text class="user-email">{{item.customer.nickname || item._openid}}</text>
+          <text class="user-dot">·</text>
+          <text class="user-time">{{item.createdAtStr}}</text>
+        </view>
+
+        <!-- 取件信息 -->
+        <view class="pickup-info" wx:if="{{item.pickupMode}}">
+          <image src="{{item.pickupMode === 'delivery' ? '/images/truck.png' : '/images/package.png'}}" class="pickup-info-icon" mode="aspectFit" />
+          <text class="pickup-info-text">{{item.pickupMode === 'delivery' ? '配送' : '自取'}} · {{item.pickupTime || '未选时间'}}</text>
+        </view>
+
+        <!-- 配送地址 -->
+        <view class="pickup-info" wx:if="{{item.pickupMode === 'delivery' && item.address}}">
+          <image src="/images/truck.png" class="pickup-info-icon" mode="aspectFit" />
+          <text class="pickup-info-text">送至：{{item.address}} · {{item.phone}}</text>
+        </view>
+
+        <!-- 备注 -->
+        <view class="remark-display" wx:if="{{item.remark}}">
+          <text class="remark-display-label">备注：</text>
+          <text class="remark-display-text">{{item.remark}}</text>
+        </view>
+
+        <!-- 文件列表 -->
+        <view class="admin-files">
+          <view class="admin-file-row" wx:for="{{item.files}}" wx:for-item="file" wx:key="id">
+            <image src="/images/file.png" class="admin-file-icon" mode="aspectFit" />
+            <text class="admin-file-name">{{file.name}}</text>
+            <text class="admin-file-copies">份数：{{file.copies}}</text>
+            <text wx:if="{{file.printRange}}" class="admin-file-range">范围：{{file.printRange}}</text>
+            <view class="view-file-btn" data-fileid="{{file.fileID}}" data-name="{{file.name}}" bindtap="previewFile">
+              查看打印内容
+            </view>
+            <view class="recalc-inline" wx:if="{{item.status !== 'cancelled' && item.pricePending}}">
+              <text class="recalc-label">打印范围</text>
+              <input class="recalc-input" type="text" value="{{recalcInputs[item._id + '_' + file.id + '_range']}}" data-orderid="{{item._id}}" data-fileid="{{file.id}}" bindinput="onRecalcRange" placeholder="留空=全部" />
+              <text wx:if="{{!file.printRange}}" class="recalc-label">总页数</text>
+              <input wx:if="{{!file.printRange}}" class="recalc-input" type="number" value="{{recalcInputs[item._id + '_' + file.id + '_pages']}}" data-orderid="{{item._id}}" data-fileid="{{file.id}}" bindinput="onRecalcPages" placeholder="打全部时填" />
+            </view>
+          </view>
+        </view>
+
+        <!-- 操作按钮 -->
+        <view class="action-buttons">
+          <button
+            wx:if="{{item.status !== 'cancelled' && item.paymentStatus === 'unpaid' && !item.pricePending}}"
+            class="action-btn confirm-pay-btn"
+            data-id="{{item._id}}"
+            bindtap="confirmPayment"
+          >
+            确认收钱
+          </button>
+          <button
+            wx:if="{{item.next && !(item.status === 'pending' && item.paymentStatus !== 'confirmed')}}"
+            class="action-btn advance-btn"
+            data-id="{{item._id}}"
+            data-status="{{item.status}}"
+            bindtap="advanceStatus"
+          >
+            推进: {{item.nextLabel}}
+          </button>
+          <view class="action-btn cancel-btn" wx:if="{{item.status !== 'cancelled' && item.status !== 'delivered'}}" data-id="{{item._id}}" bindtap="cancelOrder">
+            取消
+          </view>
+          <button
+            wx:if="{{item.status !== 'cancelled' && item.pricePending}}"
+            class="action-btn recalc-btn"
+            data-id="{{item._id}}"
+            bindtap="recalcPrice"
+          >
+            核款计价
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view wx:if="{{hasMore && orders.length > 0}}" class="load-more" bindtap="loadMore">
+      <text wx:if="{{loadingMore}}">加载中...</text>
+      <text wx:else>加载更多订单</text>
+    </view>
+    <view wx:if="{{!hasMore && orders.length > 0}}" class="no-more">已显示全部订单</view>
+  </view>
+</view>

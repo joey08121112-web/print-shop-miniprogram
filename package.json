@@ -1,0 +1,13 @@
+{
+  "name": "milo-print-shop",
+  "version": "1.1.0",
+  "private": true,
+  "description": "milo 打印小店 · 根目录仅存放本地脚本依赖（generate-icons 图标生成），不影响小程序与云函数运行",
+  "scripts": {
+    "icons": "node generate-icons.js",
+    "test": "node test/pricing.test.js"
+  },
+  "dependencies": {
+    "canvas": "^3.2.3"
+  }
+}

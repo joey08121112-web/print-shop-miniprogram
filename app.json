@@ -1,0 +1,38 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/orders/orders",
+    "pages/admin/admin"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#F5F5F7",
+    "navigationBarTitleText": "milo 打印",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F5F7"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#86868b",
+    "selectedColor": "#FF6700",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/orders/orders",
+        "text": "我的订单"
+      },
+      {
+        "pagePath": "pages/admin/admin",
+        "text": "管理"
+      }
+    ]
+  },
+  "cloud": true,
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

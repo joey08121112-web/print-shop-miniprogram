@@ -1,0 +1,9 @@
+{
+  "name": "getShopStatus",
+  "version": "1.0.0",
+  "description": "读取营业状态（营业中/休息中）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

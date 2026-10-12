@@ -1,0 +1,26 @@
+# 微信开发者工具本地配置（含个人设置，不需要上传）
+project.private.config.json
+
+# Node.js
+node_modules/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.vscode/
+.idea/
+
+# 云函数 node_modules（每个云函数目录下都要忽略）
+cloudfunctions/*/node_modules/
+.claude/
+
+# 其他助手工具的会话记录
+.workbuddy/
+
+# 收款二维码（真实个人收款码，含个人信息，不入库）
+# 本地文件保留，小程序打包不受影响；新环境部署时需手动放回这三张图
+images/qrcode.png
+images/qrcode0.png
+images/qrcode1.png
